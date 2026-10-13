@@ -1,4 +1,4 @@
-# Renders docs/images/src/*.html to docs/images/*.png at 2x using headless Chrome/Edge.
+# Renders docs/readme/src/*.html to docs/images/*.png at 2x using headless Chrome/Edge.
 # Usage: powershell -ExecutionPolicy Bypass -File docs\images\render.ps1 [name ...]
 param([string[]]$Names)
 
