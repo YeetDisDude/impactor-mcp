@@ -1,6 +1,6 @@
 # Impactor MCP server
 
-An [MCP](https://modelcontextprotocol.io) server that lets Claude (or any MCP client) do everything the
+An [MCP](https://modelcontextprotocol.io) server that lets any AI agent or MCP client (Claude, Cursor, VS Code Copilot, Windsurf, ...) do everything the
 [Impactor](https://github.com/claration/Impactor) sideloader does: sign in with an Apple ID (including
 2FA), manage developer-portal certificates/devices/app IDs, sign and install `.ipa` files with
 tweaks and customizations, install pairing files, and keep apps refreshed before they expire.
@@ -69,7 +69,7 @@ cargo install --locked --git https://github.com/YeetDisDude/plume-impactor-mcp p
 claude mcp add --scope user plume-impactor -- ~/.cargo/bin/plumemcp
 ```
 
-Or in any client's MCP config:
+Any other MCP client (Cursor, VS Code, Windsurf, Cline, ...) uses the same stdio entry in its MCP config:
 
 ```json
 { "mcpServers": { "plume-impactor": { "command": "/absolute/path/to/plumemcp", "args": [] } } }
@@ -94,7 +94,7 @@ saving for auto-refresh. Long operations report MCP progress notifications.
 
 Example prompts:
 
-- "Log me into Impactor with my Apple ID" (Claude will ask you for the 2FA code)
+- "Log me into Impactor with my Apple ID" (the agent will ask you for the 2FA code)
 - "Sign ~/Downloads/SideStore.ipa and install it on my iPhone, and keep it refreshed"
 - "Inject this tweak into the app and export the signed ipa to my desktop"
 

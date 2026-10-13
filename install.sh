@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
-# Installs the Impactor MCP server (plumemcp) and registers it with Claude.
+# Installs the Impactor MCP server (plumemcp) and registers it with Claude Code /
+# Claude Desktop when present. Any other MCP client can point at the installed binary.
 # Works alongside the stock Impactor app - nothing about the app is modified.
 #
 # Run straight from the network (nothing to clone):
@@ -169,4 +170,4 @@ if [ "$PLATFORM" = linux ] && ! command -v usbmuxd >/dev/null 2>&1; then
     warn "usbmuxd not found. Install it (e.g. 'sudo apt install usbmuxd') so the server can talk to iPhones/iPads."
 fi
 
-step "Done. Ask Claude something like: \"list my connected iOS devices\"."
+step "Done. Other MCP clients: use command \"$BIN_PATH\" (stdio). Try asking your agent: \"list my connected iOS devices\"."

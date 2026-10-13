@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    Installs the Impactor MCP server (plumemcp) and registers it with Claude.
+    Installs the Impactor MCP server (plumemcp) and registers it with Claude Code /
+    Claude Desktop when present. Any other MCP client can point at the installed binary.
 
 .DESCRIPTION
     Works alongside the stock Impactor app - nothing about the app is modified.
@@ -172,4 +173,4 @@ if (-not (Get-Service -Name 'Apple Mobile Device Service' -ErrorAction SilentlyC
     Warn 'Apple Mobile Device Service not found. Install iTunes or "Apple Devices" (Microsoft Store) so the server can talk to iPhones/iPads.'
 }
 
-Step 'Done. Ask Claude something like: "list my connected iOS devices".'
+Step "Done. Other MCP clients: use command `"$BinPath`" (stdio). Try asking your agent: 'list my connected iOS devices'."
