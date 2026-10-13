@@ -13,7 +13,7 @@
 
     1. Downloads the prebuilt binary for this machine from the latest GitHub release.
        If there is none (or -FromSource), builds it with cargo (installing Rust via winget if needed).
-       When run from a local checkout, builds that checkout instead.
+       Source builds use the local checkout when run from one.
     2. Copies it to %LOCALAPPDATA%\PlumeImpactor\mcp\plumemcp.exe.
     3. Registers it with Claude Code (`claude mcp add`) and Claude Desktop.
 #>
@@ -133,7 +133,8 @@ if ($Uninstall) {
 
 # --- 1. Get the binary -------------------------------------------------------
 New-Item -ItemType Directory -Force $InstallDir | Out-Null
-if ($LocalRoot -or $FromSource -or -not (Install-Prebuilt)) {
+# Prefer the prebuilt binary (no compiling); build only when asked or when none exists.
+if ($FromSource -or -not (Install-Prebuilt)) {
     Install-FromSource
 }
 Step "Installed $BinPath"

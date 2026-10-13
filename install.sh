@@ -139,7 +139,8 @@ fi
 
 # --- 1. Get the binary -------------------------------------------------------
 mkdir -p "$INSTALL_DIR"
-if [ -n "$LOCAL_ROOT" ] || [ "$FROM_SOURCE" = 1 ] || ! install_prebuilt; then
+# Prefer the prebuilt binary (no compiling); build only when asked or when none exists.
+if [ "$FROM_SOURCE" = 1 ] || ! install_prebuilt; then
     install_from_source
 fi
 step "Installed $BIN_PATH"

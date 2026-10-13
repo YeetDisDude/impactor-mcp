@@ -35,7 +35,9 @@ none for your platform, it builds from source with `cargo`, installing Rust firs
 then installs the binary to `%LOCALAPPDATA%\PlumeImpactor\mcp\plumemcp.exe` (Windows) or
 `~/.local/bin/plumemcp`, and registers it with **Claude Code** (`claude mcp add`, user scope) and
 **Claude Desktop** (`claude_desktop_config.json`, a `.bak` copy is kept). Restart Claude Desktop
-afterwards. Running `install.ps1` / `install.sh` from a local clone builds that clone instead.
+afterwards. Running `install.ps1` / `install.sh` from a local clone also downloads the prebuilt
+binary; it only compiles (that clone) with `-FromSource` / `--from-source` or when no prebuilt
+binary exists for your platform.
 
 Passing options:
 
