@@ -4,7 +4,7 @@ param([string[]]$Names)
 
 $ErrorActionPreference = 'Stop'
 $Sizes = @{
-    'header'         = '1000,640'
+    'title'          = '1000,640'
     'workflow'       = '1000,740'
     'tool-reference' = '1000,965'
     'system-diagram' = '1000,660'
