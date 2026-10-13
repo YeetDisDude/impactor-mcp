@@ -1,6 +1,6 @@
 # Impactor MCP server
 
-![impactor-mcp: sign and install iOS apps from your AI agent](docs/assets/banner.png)
+![impactor-mcp: sign and install iOS apps from your AI agent](docs/assets/header.png)
 
 An [MCP](https://modelcontextprotocol.io) server that lets any AI agent or MCP client (Claude, Cursor, VS Code Copilot, Windsurf, ...) do everything the
 [Impactor](https://github.com/claration/Impactor) sideloader does: sign in with an Apple ID (including
