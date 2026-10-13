@@ -4,54 +4,50 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="style.css">
 <style>
-  body { width: 1600px; height: 960px; }
-  .wrap { position: relative; padding: 64px 80px; }
-  header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 36px; }
-  header h2 { font-size: 38px; letter-spacing: -0.6px; font-weight: 600; }
-  header p { color: var(--muted); font-size: 19px; margin-top: 10px; }
-  header .chip { font-size: 14px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
-  .step { padding: 22px 24px; }
-  .step + .step { margin-top: 20px; }
-  .head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .num { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; font-weight: 600; font-size: 13px; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); }
-  .head .name { font-family: var(--mono); font-size: 17px; color: white; }
-  .head .desc { color: var(--muted); font-size: 15px; margin-left: auto; }
-  pre { font-family: var(--mono); font-size: 14px; line-height: 1.6; color: var(--text); background: var(--inset); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; white-space: pre; overflow: hidden; }
-  .log div { font-family: var(--mono); font-size: 14px; line-height: 1.95; color: var(--text); display: flex; gap: 14px; }
-  .log .pct { color: var(--faint); width: 46px; text-align: right; }
+  body { width: 1000px; height: 740px; }
+  .wrap { padding: 32px 32px; }
+  header { margin-bottom: 20px; }
+  h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.3px; }
+  header p { color: var(--muted); font-size: 15px; margin-top: 6px; }
+  .grid { display: grid; grid-template-columns: 440px 1fr; gap: 16px; }
+  .step { padding: 14px 16px; }
+  .left .step + .step { margin-top: 16px; }
+  .head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .num { width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; font-size: 12px; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); }
+  .head .name { font-family: var(--mono); font-size: 15px; }
+  .head .desc { color: var(--faint); font-size: 13px; margin-left: auto; }
+  pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--text); background: var(--inset); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; white-space: pre; }
+  .log div { font-family: var(--mono); font-size: 13px; line-height: 1.85; color: var(--text); display: flex; gap: 12px; }
+  .log .pct { color: var(--faint); width: 40px; text-align: right; }
   .log .fin { color: var(--green); }
   .right .step { height: 100%; display: flex; flex-direction: column; }
-  .right pre { flex: 1; font-size: 15px; line-height: 1.7; }
-  .foot { margin-top: 14px; color: var(--faint); font-size: 13.5px; }
+  .right pre { flex: 1; }
+  .foot { margin-top: 10px; color: var(--faint); font-size: 12.5px; }
 </style>
 </head>
 <body>
-<div class="backdrop"></div>
 <div class="wrap">
   <header>
-    <div>
-      <h2>What a single request runs</h2>
-      <p>Tool calls for “install this ipa on my iPad and keep it refreshed”, in order.</p>
-    </div>
-    <span class="chip">Real tool names, progress messages and output format</span>
+    <h2>What a single request runs</h2>
+    <p>Tool calls for “install this ipa on my iPad and keep it refreshed”, in order.</p>
   </header>
 
   <div class="grid">
     <div class="left">
       <div class="card step">
-        <div class="head"><div class="num">1</div><span class="name">device_list</span><span class="desc">find the iPad over usbmuxd</span></div>
+        <div class="head"><div class="num">1</div><span class="name">device_list</span><span class="desc">find the device</span></div>
 <pre>{ <span class="k">"count"</span>: <span class="n">1</span>, <span class="k">"devices"</span>: [{
     <span class="k">"name"</span>: <span class="s">"iPad"</span>, <span class="k">"connection"</span>: <span class="s">"usb"</span>,
-    <span class="k">"udid"</span>: <span class="s">"00008xxx-xxxxxxxxxxxxxxxx"</span>, <span class="k">"is_mac"</span>: <span class="b">false</span> }] }</pre>
+    <span class="k">"udid"</span>: <span class="s">"00008xxx-xxxxxxxxxxxxxxxx"</span>,
+    <span class="k">"is_mac"</span>: <span class="b">false</span> }] }</pre>
       </div>
 
       <div class="card step">
         <div class="head"><div class="num">2</div><span class="name">package_inspect</span><span class="desc">detect the app type</span></div>
-<pre>{ <span class="k">"name"</span>: <span class="s">"SideStore"</span>, <span class="k">"app_type"</span>: <span class="s">"SideStore"</span>,
+<pre>{ <span class="k">"name"</span>: <span class="s">"SideStore"</span>,
+  <span class="k">"app_type"</span>: <span class="s">"SideStore"</span>,
   <span class="k">"bundle_identifier"</span>: <span class="s">"com.SideStore.SideStore"</span>,
-  <span class="k">"supports_pairing_file"</span>: <span class="b">true</span>,
-  <span class="k">"pairing_file_path"</span>: <span class="s">"/Documents/ALTPairingFile.mobiledevicepairing"</span> }</pre>
+  <span class="k">"supports_pairing_file"</span>: <span class="b">true</span>, ... }</pre>
       </div>
 
       <div class="card step">
@@ -75,14 +71,16 @@
   <span class="k">"success"</span>: <span class="b">true</span>,
   <span class="k">"mode"</span>: <span class="s">"apple_id"</span>,
   <span class="k">"name"</span>: <span class="s">"SideStore"</span>,
-  <span class="k">"bundle_identifier"</span>: <span class="s">"com.SideStore.SideStore.ABCDE12345"</span>,
+  <span class="k">"bundle_identifier"</span>:
+    <span class="s">"com.SideStore.SideStore.ABCDE12345"</span>,
   <span class="k">"app_type"</span>: <span class="s">"SideStore"</span>,
   <span class="k">"team_id"</span>: <span class="s">"ABCDE12345"</span>,
   <span class="k">"device"</span>: { <span class="k">"name"</span>: <span class="s">"iPad"</span>, <span class="k">"connection"</span>: <span class="s">"usb"</span> },
   <span class="k">"installed"</span>: <span class="b">true</span>,
   <span class="k">"pairing_file"</span>: {
     <span class="k">"installed"</span>: <span class="b">true</span>,
-    <span class="k">"path"</span>: <span class="s">"/Documents/ALTPairingFile.mobiledevicepairing"</span>
+    <span class="k">"path"</span>:
+      <span class="s">"/Documents/ALTPairingFile.mobiledevicepairing"</span>
   },
   <span class="k">"refresh"</span>: {
     <span class="k">"saved_path"</span>: <span class="s">"…/refresh_store/SideStore-4f1c….app"</span>,
@@ -90,11 +88,8 @@
   },
   <span class="k">"profile_expiration"</span>: <span class="s">"2026-10-20T14:52:09+00:00"</span>,
   <span class="k">"notes"</span>: []
-}
-
-<span class="c">// later, automatically or on request:</span>
-<span class="c">// refresh_run_due → re-signs before the 7-day profile expires</span></pre>
-        <div class="foot">Identifiers shortened / replaced. Team ID shown is a placeholder.</div>
+}</pre>
+        <div class="foot">Identifiers replaced; team ID is a placeholder.</div>
       </div>
     </div>
   </div>

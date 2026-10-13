@@ -4,49 +4,39 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="style.css">
 <style>
-  body { width: 1600px; height: 800px; }
-  .wrap { display: grid; grid-template-columns: 600px 1fr; gap: 72px; padding: 0 80px; height: 100%; align-items: center; }
-  .logo { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
-  .logo .mark { width: 48px; height: 48px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; }
-  .logo .mark svg { width: 26px; height: 26px; }
-  .logo b { font-size: 20px; font-weight: 600; font-family: var(--mono); }
-  .logo small { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
-  h1 { font-size: 46px; line-height: 1.15; letter-spacing: -0.8px; font-weight: 600; }
-  p.lead { margin-top: 20px; font-size: 19px; line-height: 1.6; color: var(--muted); }
-  ul.facts { margin-top: 28px; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 16px; color: var(--muted); }
-  ul.facts li { display: flex; gap: 10px; }
-  ul.facts li::before { content: "—"; color: var(--faint); }
-  ul.facts b { color: var(--text); font-weight: 500; }
+  body { width: 1000px; height: 640px; }
+  .wrap { padding: 36px 40px; }
+  .top { display: flex; align-items: center; gap: 16px; }
+  .mark { width: 52px; height: 52px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; flex: none; }
+  .mark svg { width: 28px; height: 28px; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.4px; }
+  .sub { color: var(--muted); font-size: 16px; margin-top: 3px; }
+  .chips { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
 
-  .msgs { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 14px; }
-  .user { align-self: flex-end; max-width: 80%; background: #1f2937; border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; font-size: 16px; line-height: 1.5; }
-  .role { font-size: 12px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: -6px; }
+  .card { margin-top: 24px; }
+  .msgs { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .role { font-size: 12px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.6px; }
   .role.r { align-self: flex-end; }
-  .body { display: flex; flex-direction: column; gap: 8px; }
+  .user { align-self: flex-end; background: #1f2937; border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px; font-size: 16px; margin-top: -4px; }
+  .tool { font-size: 15px; }
+  .tool .ok { font-size: 14px; }
   .progress { padding: 12px 14px; border-radius: 6px; background: var(--inset); border: 1px solid var(--border); }
-  .progress .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 9px; font-family: var(--mono); }
-  .steps { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; font-size: 13px; color: var(--muted); font-family: var(--mono); }
+  .progress .row { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); margin-bottom: 9px; font-family: var(--mono); }
+  .steps { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px 16px; font-size: 13.5px; color: var(--muted); font-family: var(--mono); }
   .steps span::before { content: "✓ "; color: var(--green); }
-  .say { font-size: 15.5px; line-height: 1.6; color: var(--text); padding: 2px 2px 0; }
+  .say { font-size: 16px; line-height: 1.6; color: var(--text); padding: 4px 2px 0; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div>
-    <div class="logo">
-      <div class="mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#e6edf3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m-3-3 3 3 3-3"/><path d="M10.5 18h3"/></svg>
-      </div>
-      <div><b>impactor-mcp</b><small>MCP server for the Impactor sideloader</small></div>
+  <div class="top">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#e6edf3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m-3-3 3 3 3-3"/><path d="M10.5 18h3"/></svg>
     </div>
-    <h1>Sign and install iOS apps from your AI agent.</h1>
-    <p class="lead">Exposes Impactor's features — Apple ID signing, installs, tweaks, pairing files and auto-refresh — as Model Context Protocol tools.</p>
-    <ul class="facts">
-      <li><span><b>36 tools</b> covering the Impactor app and plumesign CLI</span></li>
-      <li><span>Works with <b>any MCP client</b> — Claude, Cursor, VS Code, Windsurf</span></li>
-      <li><span>Built on the <b>official Impactor v2.6.5</b> crates; the app is not modified</span></li>
-      <li><span>Prebuilt for <b>Windows, macOS and Linux</b></span></li>
-    </ul>
+    <div>
+      <h1>Sign and install iOS apps from your AI agent</h1>
+      <div class="sub">An MCP server for the Impactor sideloader — 36 tools, any MCP client.</div>
+    </div>
   </div>
 
   <div class="card">
@@ -55,21 +45,18 @@
       <div class="role r">You</div>
       <div class="user">Install SideStore.ipa on my iPad and keep it refreshed.</div>
       <div class="role">Agent</div>
-      <div class="body">
-        <div class="tool"><span class="ns">impactor</span> device_list <span class="ok">✓ iPad16,9 · USB</span></div>
-        <div class="tool"><span class="ns">impactor</span> package_inspect <span class="ok">✓ app type: SideStore</span></div>
-        <div class="tool"><span class="ns">impactor</span> sign_and_install <span class="ok">✓ completed</span></div>
-        <div class="progress">
-          <div class="row"><span>Finished!</span><span>100%</span></div>
-          <div class="bar"><div style="width:100%"></div></div>
-          <div class="steps">
-            <span>Ensuring account is valid</span><span>Ensuring device is registered</span>
-            <span>Signing package</span><span>Installing</span>
-            <span>Installing pairing file</span><span>Saving for refresh</span>
-          </div>
+      <div class="tool"><span class="ns">impactor</span> device_list <span class="ok">✓ iPad16,9 · USB</span></div>
+      <div class="tool"><span class="ns">impactor</span> package_inspect <span class="ok">✓ app type: SideStore</span></div>
+      <div class="tool"><span class="ns">impactor</span> sign_and_install <span class="ok">✓ completed</span></div>
+      <div class="progress">
+        <div class="row"><span>Finished!</span><span>100%</span></div>
+        <div class="bar"><div style="width:100%"></div></div>
+        <div class="steps">
+          <span>Ensuring account is valid</span><span>Registering device</span><span>Signing package</span>
+          <span>Installing</span><span>Installing pairing file</span><span>Saving for refresh</span>
         </div>
-        <div class="say">SideStore is installed on your iPad (iOS 27.2) and signed with your Apple ID. The pairing file is in place, and the app will be re-signed 3 days before its 7-day profile expires.</div>
       </div>
+      <div class="say">SideStore is installed on your iPad (iOS 27.2) and signed with your Apple ID. The pairing file is in place, and the app will be re-signed 3 days before its 7-day profile expires.</div>
     </div>
   </div>
 </div>

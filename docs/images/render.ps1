@@ -4,10 +4,10 @@ param([string[]]$Names)
 
 $ErrorActionPreference = 'Stop'
 $Sizes = @{
-    'hero'         = '1600,800'
-    'session'      = '1600,960'
-    'tools'        = '1600,850'
-    'architecture' = '1600,820'
+    'hero'         = '1000,640'
+    'session'      = '1000,740'
+    'tools'        = '1000,965'
+    'architecture' = '1000,660'
 }
 
 $browser = @(
