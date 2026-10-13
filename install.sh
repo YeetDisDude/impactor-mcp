@@ -1,19 +1,19 @@
 #!/usr/bin/env sh
-# Installs the Impactor MCP server (plumemcp) and registers it with Claude Code /
+# Installs the Impactor MCP server (impactor-mcp) and registers it with Claude Code /
 # Claude Desktop when present. Any other MCP client can point at the installed binary.
 # Works alongside the stock Impactor app - nothing about the app is modified.
 #
 # Run straight from the network (nothing to clone):
-#   curl -fsSL https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/install.sh | sh
 #   curl -fsSL .../install.sh | sh -s -- --auto-refresh
 #
 # Options: --no-claude-code --no-desktop --auto-refresh --from-source --uninstall
 set -eu
 
-REPO="YeetDisDude/plume-impactor-mcp"
-SERVER_NAME="plume-impactor"
-INSTALL_DIR="${PLUME_MCP_INSTALL_DIR:-$HOME/.local/bin}"
-BIN_PATH="$INSTALL_DIR/plumemcp"
+REPO="YeetDisDude/impactor-mcp"
+SERVER_NAME="impactor"
+INSTALL_DIR="${IMPACTOR_MCP_INSTALL_DIR:-$HOME/.local/bin}"
+BIN_PATH="$INSTALL_DIR/impactor-mcp"
 
 # A local checkout has Cargo.toml next to this script; when piped into `sh`, $0 is the shell.
 LOCAL_ROOT=""
@@ -52,14 +52,14 @@ step() { printf '\033[36m==> %s\033[0m\n' "$1"; }
 warn() { printf '\033[33mwarning: %s\033[0m\n' "$1" >&2; }
 
 # Edits claude_desktop_config.json with python3 (preinstalled on macOS and most
-# Linux distros). $1 = "add" | "remove"
+# Linux distros). $1 = "add" | "remove", $2 = server name (default $SERVER_NAME)
 desktop_config() {
     if ! command -v python3 >/dev/null 2>&1; then
         warn "python3 not found; add this to $DESKTOP_CONFIG under \"mcpServers\":"
         echo "  \"$SERVER_NAME\": { \"command\": \"$BIN_PATH\", \"args\": [] }"
         return 0
     fi
-    python3 - "$1" "$DESKTOP_CONFIG" "$SERVER_NAME" "$BIN_PATH" "$AUTO_REFRESH" <<'PY'
+    python3 - "$1" "$DESKTOP_CONFIG" "${2:-$SERVER_NAME}" "$BIN_PATH" "$AUTO_REFRESH" <<'PY'
 import json, os, shutil, sys
 action, path, name, binary, auto = sys.argv[1:6]
 config = {}
@@ -72,7 +72,7 @@ servers = config.setdefault("mcpServers", {})
 if action == "add":
     entry = {"command": binary, "args": []}
     if auto == "1":
-        entry["env"] = {"PLUME_MCP_AUTO_REFRESH": "1"}
+        entry["env"] = {"IMPACTOR_MCP_AUTO_REFRESH": "1"}
     servers[name] = entry
 else:
     servers.pop(name, None)
@@ -93,7 +93,7 @@ download() { # url dest
 }
 
 install_prebuilt() {
-    url="https://github.com/$REPO/releases/latest/download/plumemcp-$PLATFORM-$ARCH"
+    url="https://github.com/$REPO/releases/latest/download/impactor-mcp-$PLATFORM-$ARCH"
     step "Downloading prebuilt binary ($url)"
     tmp="$(mktemp)"
     if download "$url" "$tmp"; then
@@ -113,21 +113,33 @@ install_from_source() {
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
         PATH="$HOME/.cargo/bin:$PATH"
     fi
-    step "Building plumemcp (release). The first build downloads dependencies and takes a few minutes..."
+    step "Building impactor-mcp (release). The first build downloads dependencies and takes a few minutes..."
     if [ -n "$LOCAL_ROOT" ]; then
         (cd "$LOCAL_ROOT" && cargo build --release --locked)
-        cp -f "$LOCAL_ROOT/target/release/plumemcp" "$BIN_PATH"
+        cp -f "$LOCAL_ROOT/target/release/impactor-mcp" "$BIN_PATH"
     else
         root="$(mktemp -d)"
-        cargo install --locked --git "https://github.com/$REPO" plumemcp --root "$root"
-        cp -f "$root/bin/plumemcp" "$BIN_PATH"
+        cargo install --locked --git "https://github.com/$REPO" impactor-mcp --root "$root"
+        cp -f "$root/bin/impactor-mcp" "$BIN_PATH"
         rm -rf "$root"
     fi
     chmod +x "$BIN_PATH"
 }
 
+# Earlier releases were named `plume-impactor` / `plumemcp`; clean those up.
+remove_legacy() {
+    if command -v claude >/dev/null 2>&1; then
+        claude mcp remove --scope user plume-impactor >/dev/null 2>&1 || true
+    fi
+    if [ -f "$DESKTOP_CONFIG" ] && grep -q '"plume-impactor"' "$DESKTOP_CONFIG" 2>/dev/null; then
+        desktop_config remove plume-impactor
+    fi
+    rm -f "$INSTALL_DIR/plumemcp"
+}
+
 # --- Uninstall ---------------------------------------------------------------
 if [ "$UNINSTALL" = 1 ]; then
+    remove_legacy
     if command -v claude >/dev/null 2>&1; then
         claude mcp remove --scope user "$SERVER_NAME" >/dev/null 2>&1 || true
     fi
@@ -144,6 +156,7 @@ if [ "$FROM_SOURCE" = 1 ] || ! install_prebuilt; then
     install_from_source
 fi
 step "Installed $BIN_PATH"
+remove_legacy
 
 # --- 2. Register -------------------------------------------------------------
 if [ "$NO_CLAUDE_CODE" = 0 ]; then
@@ -151,7 +164,7 @@ if [ "$NO_CLAUDE_CODE" = 0 ]; then
         step "Registering with Claude Code (user scope)"
         claude mcp remove --scope user "$SERVER_NAME" >/dev/null 2>&1 || true
         if [ "$AUTO_REFRESH" = 1 ]; then
-            claude mcp add --scope user -e PLUME_MCP_AUTO_REFRESH=1 "$SERVER_NAME" -- "$BIN_PATH"
+            claude mcp add --scope user -e IMPACTOR_MCP_AUTO_REFRESH=1 "$SERVER_NAME" -- "$BIN_PATH"
         else
             claude mcp add --scope user "$SERVER_NAME" -- "$BIN_PATH"
         fi

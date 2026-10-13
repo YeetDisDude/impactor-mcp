@@ -1,4 +1,4 @@
-//! `plumemcp` - a Model Context Protocol server for Impactor.
+//! `impactor-mcp` - a Model Context Protocol server for Impactor.
 //!
 //! Speaks JSON-RPC 2.0 over stdio (newline-delimited messages). Every byte
 //! written to stdout must be a protocol message, so all logging goes to stderr.
@@ -41,7 +41,7 @@ fn main() {
 
     let writer: Writer = Arc::new(Mutex::new(std::io::stdout()));
 
-    if std::env::var("PLUME_MCP_AUTO_REFRESH").is_ok_and(|v| v == "1") {
+    if std::env::var("IMPACTOR_MCP_AUTO_REFRESH").is_ok_and(|v| v == "1") {
         tools::refresh::spawn_auto_refresh();
     }
 
@@ -113,7 +113,7 @@ fn handle_message(message: Value, writer: &Writer) {
                     "protocolVersion": version,
                     "capabilities": { "tools": { "listChanged": false } },
                     "serverInfo": {
-                        "name": "plume-impactor",
+                        "name": "impactor",
                         "title": "Impactor",
                         "version": env!("CARGO_PKG_VERSION")
                     },

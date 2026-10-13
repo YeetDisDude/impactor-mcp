@@ -116,11 +116,11 @@ pub async fn call(name: &str, args: &Value, ctx: &Ctx) -> Option<ToolResult> {
     }
 }
 
-/// Background loop (PLUME_MCP_AUTO_REFRESH=1): every 3 minutes refreshes due
+/// Background loop (IMPACTOR_MCP_AUTO_REFRESH=1): every 3 minutes refreshes due
 /// apps on connected devices. Certificate resets are never allowed here.
 pub fn spawn_auto_refresh() {
     let spawned = std::thread::Builder::new()
-        .name("plumemcp-auto-refresh".into())
+        .name("impactor-mcp-auto-refresh".into())
         .spawn(|| {
             let rt = match tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -193,7 +193,7 @@ async fn refresh_list() -> ToolResult {
 
     Ok(json!({
         "devices": list,
-        "auto_refresh_enabled": std::env::var("PLUME_MCP_AUTO_REFRESH").is_ok_and(|v| v == "1"),
+        "auto_refresh_enabled": std::env::var("IMPACTOR_MCP_AUTO_REFRESH").is_ok_and(|v| v == "1"),
     }))
 }
 

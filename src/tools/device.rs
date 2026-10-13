@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 
 use crate::common::{self, Ctx, ToolResult, bool_or, opt_str, req_str, schema, tool};
 
-const LABEL: &str = "plume_mcp";
+const LABEL: &str = "impactor_mcp";
 
 fn udid_prop() -> Value {
     json!({

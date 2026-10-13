@@ -1,20 +1,20 @@
 <#
 .SYNOPSIS
-    Installs the Impactor MCP server (plumemcp) and registers it with Claude Code /
+    Installs the Impactor MCP server (impactor-mcp) and registers it with Claude Code /
     Claude Desktop when present. Any other MCP client can point at the installed binary.
 
 .DESCRIPTION
     Works alongside the stock Impactor app - nothing about the app is modified.
 
     Run straight from the network (nothing to clone):
-        irm https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.ps1 | iex
+        irm https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/install.ps1 | iex
     With options:
-        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.ps1))) -AutoRefresh
+        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/install.ps1))) -AutoRefresh
 
     1. Downloads the prebuilt binary for this machine from the latest GitHub release.
        If there is none (or -FromSource), builds it with cargo (installing Rust via winget if needed).
        Source builds use the local checkout when run from one.
-    2. Copies it to %LOCALAPPDATA%\PlumeImpactor\mcp\plumemcp.exe.
+    2. Copies it to %LOCALAPPDATA%\impactor-mcp\impactor-mcp.exe.
     3. Registers it with Claude Code (`claude mcp add`) and Claude Desktop.
 #>
 param(
@@ -26,10 +26,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$Repo = 'YeetDisDude/plume-impactor-mcp'
-$ServerName = 'plume-impactor'
-$InstallDir = Join-Path $env:LOCALAPPDATA 'PlumeImpactor\mcp'
-$BinPath = Join-Path $InstallDir 'plumemcp.exe'
+$Repo = 'YeetDisDude/impactor-mcp'
+$ServerName = 'impactor'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'impactor-mcp'
+$BinPath = Join-Path $InstallDir 'impactor-mcp.exe'
 $DesktopConfig = Join-Path $env:APPDATA 'Claude\claude_desktop_config.json'
 # Empty when piped into `iex`; a local checkout has Cargo.toml next to this script.
 $LocalRoot = if ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot 'Cargo.toml'))) { $PSScriptRoot } else { $null }
@@ -67,9 +67,9 @@ function Read-DesktopConfig {
 
 function Install-Prebuilt {
     $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'aarch64' } else { 'x86_64' }
-    $url = "https://github.com/$Repo/releases/latest/download/plumemcp-windows-$arch.exe"
+    $url = "https://github.com/$Repo/releases/latest/download/impactor-mcp-windows-$arch.exe"
     Step "Downloading prebuilt binary ($url)"
-    $tmp = Join-Path $env:TEMP "plumemcp-$([guid]::NewGuid()).exe"
+    $tmp = Join-Path $env:TEMP "impactor-mcp-$([guid]::NewGuid()).exe"
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         $ProgressPreference = 'SilentlyContinue'
@@ -96,36 +96,48 @@ function Install-FromSource {
     }
 
     $hint = "cargo build failed. Windows builds need the MSVC C++ build tools: winget install Microsoft.VisualStudio.2022.BuildTools --override `"--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive`""
-    Step 'Building plumemcp (release). The first build downloads dependencies and takes a few minutes...'
+    Step 'Building impactor-mcp (release). The first build downloads dependencies and takes a few minutes...'
     if ($LocalRoot) {
         Push-Location $LocalRoot
         try { $code = Invoke-Native { cargo build --release --locked } } finally { Pop-Location }
         if ($code -ne 0) { throw $hint }
-        Copy-Item -Force (Join-Path $LocalRoot 'target\release\plumemcp.exe') $BinPath
+        Copy-Item -Force (Join-Path $LocalRoot 'target\release\impactor-mcp.exe') $BinPath
     } else {
-        $root = Join-Path $env:TEMP "plumemcp-build-$([guid]::NewGuid())"
+        $root = Join-Path $env:TEMP "impactor-mcp-build-$([guid]::NewGuid())"
         try {
-            $code = Invoke-Native { cargo install --locked --git "https://github.com/$Repo" plumemcp --root $root }
+            $code = Invoke-Native { cargo install --locked --git "https://github.com/$Repo" impactor-mcp --root $root }
             if ($code -ne 0) { throw $hint }
-            Copy-Item -Force (Join-Path $root 'bin\plumemcp.exe') $BinPath
+            Copy-Item -Force (Join-Path $root 'bin\impactor-mcp.exe') $BinPath
         } finally {
             Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
         }
     }
 }
 
-# --- Uninstall ---------------------------------------------------------------
-if ($Uninstall) {
+function Remove-Registration($Name) {
     if (Get-Command claude -ErrorAction SilentlyContinue) {
-        Invoke-Native -Quiet { claude mcp remove --scope user $ServerName } | Out-Null
+        Invoke-Native -Quiet { claude mcp remove --scope user $Name } | Out-Null
     }
     if (Test-Path $DesktopConfig) {
         $config = Read-DesktopConfig
-        if ($config.mcpServers -and ($config.mcpServers.PSObject.Properties.Name -contains $ServerName)) {
-            $config.mcpServers.PSObject.Properties.Remove($ServerName)
+        if ($config.mcpServers -and ($config.mcpServers.PSObject.Properties.Name -contains $Name)) {
+            $config.mcpServers.PSObject.Properties.Remove($Name)
             Write-Utf8NoBom $DesktopConfig ($config | ConvertTo-Json -Depth 32)
         }
     }
+}
+
+# Earlier releases were named `plume-impactor` / `plumemcp`; clean those up.
+function Remove-Legacy {
+    Remove-Registration 'plume-impactor'
+    $legacyDir = Join-Path $env:LOCALAPPDATA 'PlumeImpactor\mcp'
+    if (Test-Path $legacyDir) { Remove-Item -Recurse -Force $legacyDir -ErrorAction SilentlyContinue }
+}
+
+# --- Uninstall ---------------------------------------------------------------
+if ($Uninstall) {
+    Remove-Registration $ServerName
+    Remove-Legacy
     if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir }
     Step 'Uninstalled. (Impactor accounts in %APPDATA%\PlumeImpactor were left untouched.)'
     return
@@ -138,6 +150,7 @@ if ($FromSource -or -not (Install-Prebuilt)) {
     Install-FromSource
 }
 Step "Installed $BinPath"
+Remove-Legacy
 
 # --- 2. Register -------------------------------------------------------------
 if (-not $NoClaudeCode) {
@@ -145,7 +158,7 @@ if (-not $NoClaudeCode) {
         Step 'Registering with Claude Code (user scope)'
         Invoke-Native -Quiet { claude mcp remove --scope user $ServerName } | Out-Null
         if ($AutoRefresh) {
-            Invoke-Native { claude mcp add --scope user -e PLUME_MCP_AUTO_REFRESH=1 $ServerName -- $BinPath } | Out-Null
+            Invoke-Native { claude mcp add --scope user -e IMPACTOR_MCP_AUTO_REFRESH=1 $ServerName -- $BinPath } | Out-Null
         } else {
             Invoke-Native { claude mcp add --scope user $ServerName -- $BinPath } | Out-Null
         }
@@ -163,7 +176,7 @@ if (-not $NoDesktop) {
         $config | Add-Member -NotePropertyName mcpServers -NotePropertyValue (New-Object PSObject)
     }
     $entry = [ordered]@{ command = $BinPath; args = @() }
-    if ($AutoRefresh) { $entry.env = @{ PLUME_MCP_AUTO_REFRESH = '1' } }
+    if ($AutoRefresh) { $entry.env = @{ IMPACTOR_MCP_AUTO_REFRESH = '1' } }
     $config.mcpServers | Add-Member -Force -NotePropertyName $ServerName -NotePropertyValue ([PSCustomObject]$entry)
     Write-Utf8NoBom $DesktopConfig ($config | ConvertTo-Json -Depth 32)
     Write-Host '    Restart Claude Desktop to load the server.'

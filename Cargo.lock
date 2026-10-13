@@ -2337,6 +2337,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "impactor-mcp"
+version = "2.6.5"
+dependencies = [
+ "chrono",
+ "env_logger",
+ "futures",
+ "idevice",
+ "log",
+ "plist",
+ "plume_core",
+ "plume_gestalt",
+ "plume_store",
+ "plume_utils",
+ "rustls",
+ "serde_json",
+ "tokio",
+ "uuid",
+ "zip 8.6.0",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3394,27 +3415,6 @@ dependencies = [
  "plume_core",
  "plume_store",
  "thiserror 2.0.21",
- "tokio",
- "uuid",
- "zip 8.6.0",
-]
-
-[[package]]
-name = "plumemcp"
-version = "2.6.5"
-dependencies = [
- "chrono",
- "env_logger",
- "futures",
- "idevice",
- "log",
- "plist",
- "plume_core",
- "plume_gestalt",
- "plume_store",
- "plume_utils",
- "rustls",
- "serde_json",
  "tokio",
  "uuid",
  "zip 8.6.0",

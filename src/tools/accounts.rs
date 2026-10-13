@@ -356,7 +356,7 @@ async fn account_login(args: &Value) -> ToolResult {
 
     let thread_email = email.clone();
     let spawn = std::thread::Builder::new()
-        .name("plumemcp-login".into())
+        .name("impactor-mcp-login".into())
         .spawn(move || {
             let result = match tokio::runtime::Builder::new_current_thread()
                 .enable_all()

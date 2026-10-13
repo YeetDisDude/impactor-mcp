@@ -20,20 +20,20 @@ One line, nothing to clone or download by hand:
 **Windows** (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/install.ps1 | iex
 ```
 
 **macOS / Linux**:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/install.sh | sh
 ```
 
 The installer downloads the prebuilt binary for your platform from the latest
-[release](https://github.com/YeetDisDude/plume-impactor-mcp/releases) (no Rust needed). If there is
+[release](https://github.com/YeetDisDude/impactor-mcp/releases) (no Rust needed). If there is
 none for your platform, it builds from source with `cargo`, installing Rust first if needed. It
-then installs the binary to `%LOCALAPPDATA%\PlumeImpactor\mcp\plumemcp.exe` (Windows) or
-`~/.local/bin/plumemcp`, and registers it with **Claude Code** (`claude mcp add`, user scope) and
+then installs the binary to `%LOCALAPPDATA%\impactor-mcp\impactor-mcp.exe` (Windows) or
+`~/.local/bin/impactor-mcp`, and registers it with **Claude Code** (`claude mcp add`, user scope) and
 **Claude Desktop** (`claude_desktop_config.json`, a `.bak` copy is kept). Restart Claude Desktop
 afterwards. Running `install.ps1` / `install.sh` from a local clone also downloads the prebuilt
 binary; it only compiles (that clone) with `-FromSource` / `--from-source` or when no prebuilt
@@ -42,11 +42,11 @@ binary exists for your platform.
 Passing options:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.ps1))) -AutoRefresh
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/install.ps1))) -AutoRefresh
 ```
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.sh | sh -s -- --auto-refresh
+curl -fsSL https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/install.sh | sh -s -- --auto-refresh
 ```
 
 | Option (ps1 / sh) | Effect |
@@ -67,14 +67,14 @@ curl -fsSL https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main
 ### Manual setup
 
 ```sh
-cargo install --locked --git https://github.com/YeetDisDude/plume-impactor-mcp plumemcp
-claude mcp add --scope user plume-impactor -- ~/.cargo/bin/plumemcp
+cargo install --locked --git https://github.com/YeetDisDude/impactor-mcp impactor-mcp
+claude mcp add --scope user impactor -- ~/.cargo/bin/impactor-mcp
 ```
 
 Any other MCP client (Cursor, VS Code, Windsurf, Cline, ...) uses the same stdio entry in its MCP config:
 
 ```json
-{ "mcpServers": { "plume-impactor": { "command": "/absolute/path/to/plumemcp", "args": [] } } }
+{ "mcpServers": { "impactor": { "command": "/absolute/path/to/impactor-mcp", "args": [] } } }
 ```
 
 ## Tools
@@ -107,7 +107,7 @@ Example prompts:
   `allow_certificate_reset: true` only if you accept that existing SideStore/AltStore installs break.
 - **Auto-refresh.** Apps installed with `refresh: true` are re-signed before their 7-day profile
   expires when you call `refresh_run_due`, or automatically every 3 minutes when the server runs
-  with `PLUME_MCP_AUTO_REFRESH=1`. The Impactor app has its own refresh daemon; enable auto-refresh
+  with `IMPACTOR_MCP_AUTO_REFRESH=1`. The Impactor app has its own refresh daemon; enable auto-refresh
   in only one of them.
 - **Shared data.** Both use `accounts.json` in `%APPDATA%\PlumeImpactor` (Windows) or
   `~/.config/PlumeImpactor`. The app keeps a copy in memory, so changes made here (e.g. a new login)

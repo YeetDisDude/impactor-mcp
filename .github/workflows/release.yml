@@ -1,4 +1,4 @@
-# Builds prebuilt plumemcp binaries and attaches them to a GitHub release, so
+# Builds prebuilt impactor-mcp binaries and attaches them to a GitHub release, so
 # install.ps1 / install.sh can install without a Rust toolchain.
 # Trigger: push a tag like `v2.6.5`, or run manually from the Actions tab.
 name: Release
@@ -21,12 +21,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, target: x86_64-pc-windows-msvc, asset: plumemcp-windows-x86_64.exe, bin: plumemcp.exe }
-          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, asset: plumemcp-windows-aarch64.exe, bin: plumemcp.exe }
-          - { os: macos-latest, target: aarch64-apple-darwin, asset: plumemcp-macos-aarch64, bin: plumemcp }
-          - { os: macos-latest, target: x86_64-apple-darwin, asset: plumemcp-macos-x86_64, bin: plumemcp }
-          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, asset: plumemcp-linux-x86_64, bin: plumemcp }
-          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, asset: plumemcp-linux-aarch64, bin: plumemcp }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, asset: impactor-mcp-windows-x86_64.exe, bin: impactor-mcp.exe }
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, asset: impactor-mcp-windows-aarch64.exe, bin: impactor-mcp.exe }
+          - { os: macos-latest, target: aarch64-apple-darwin, asset: impactor-mcp-macos-aarch64, bin: impactor-mcp }
+          - { os: macos-latest, target: x86_64-apple-darwin, asset: impactor-mcp-macos-x86_64, bin: impactor-mcp }
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, asset: impactor-mcp-linux-x86_64, bin: impactor-mcp }
+          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, asset: impactor-mcp-linux-aarch64, bin: impactor-mcp }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

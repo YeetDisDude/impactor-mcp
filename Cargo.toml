@@ -1,5 +1,5 @@
 [package]
-name = "plumemcp"
+name = "impactor-mcp"
 description = "Model Context Protocol (MCP) server exposing Impactor's sideloading features."
 version = "2.6.5"
 edition = "2024"

@@ -307,7 +307,7 @@ fn load_package(path: &Path) -> Result<Package, String> {
                 path.display()
             ));
         }
-        let tmp = std::env::temp_dir().join(format!("plumemcp_{}", uuid::Uuid::new_v4()));
+        let tmp = std::env::temp_dir().join(format!("impactor-mcp_{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&tmp).map_err(e("Failed to create temp dir"))?;
         let ipa = tmp.join("input.ipa");
         let result = zip_app_dir(path, &ipa).and_then(|_| {
