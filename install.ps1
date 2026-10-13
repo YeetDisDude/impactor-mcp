@@ -1,0 +1,175 @@
+<#
+.SYNOPSIS
+    Installs the Impactor MCP server (plumemcp) and registers it with Claude.
+
+.DESCRIPTION
+    Works alongside the stock Impactor app - nothing about the app is modified.
+
+    Run straight from the network (nothing to clone):
+        irm https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.ps1 | iex
+    With options:
+        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/YeetDisDude/plume-impactor-mcp/main/install.ps1))) -AutoRefresh
+
+    1. Downloads the prebuilt binary for this machine from the latest GitHub release.
+       If there is none (or -FromSource), builds it with cargo (installing Rust via winget if needed).
+       When run from a local checkout, builds that checkout instead.
+    2. Copies it to %LOCALAPPDATA%\PlumeImpactor\mcp\plumemcp.exe.
+    3. Registers it with Claude Code (`claude mcp add`) and Claude Desktop.
+#>
+param(
+    [switch]$NoClaudeCode,   # Skip registering with Claude Code
+    [switch]$NoDesktop,      # Skip registering with Claude Desktop
+    [switch]$AutoRefresh,    # Let the server auto-refresh saved apps in the background
+    [switch]$FromSource,     # Build with cargo even if a prebuilt binary is available
+    [switch]$Uninstall       # Remove the binary and both registrations
+)
+
+$ErrorActionPreference = 'Stop'
+$Repo = 'YeetDisDude/plume-impactor-mcp'
+$ServerName = 'plume-impactor'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'PlumeImpactor\mcp'
+$BinPath = Join-Path $InstallDir 'plumemcp.exe'
+$DesktopConfig = Join-Path $env:APPDATA 'Claude\claude_desktop_config.json'
+# Empty when piped into `iex`; a local checkout has Cargo.toml next to this script.
+$LocalRoot = if ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot 'Cargo.toml'))) { $PSScriptRoot } else { $null }
+
+function Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
+function Warn($msg) { Write-Host "warning: $msg" -ForegroundColor Yellow }
+
+function Write-Utf8NoBom($path, $text) {
+    # Windows PowerShell 5.1's `Out-File -Encoding utf8` writes a BOM, which
+    # JSON parsers may reject.
+    [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+function Invoke-Native([scriptblock]$Block, [switch]$Quiet) {
+    # Native stderr under ErrorActionPreference=Stop throws in PowerShell 5.1.
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        if ($Quiet) { & $Block 2>&1 | Out-Null } else { & $Block | Out-Host }
+        return $LASTEXITCODE
+    } catch {
+        return 1
+    } finally {
+        $ErrorActionPreference = $old
+    }
+}
+
+function Read-DesktopConfig {
+    if (Test-Path $DesktopConfig) {
+        $raw = Get-Content $DesktopConfig -Raw
+        if (-not [string]::IsNullOrWhiteSpace($raw)) { return ($raw | ConvertFrom-Json) }
+    }
+    return (New-Object PSObject)
+}
+
+function Install-Prebuilt {
+    $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'aarch64' } else { 'x86_64' }
+    $url = "https://github.com/$Repo/releases/latest/download/plumemcp-windows-$arch.exe"
+    Step "Downloading prebuilt binary ($url)"
+    $tmp = Join-Path $env:TEMP "plumemcp-$([guid]::NewGuid()).exe"
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $tmp
+        Copy-Item -Force $tmp $BinPath
+        return $true
+    } catch {
+        Warn "No prebuilt binary available ($($_.Exception.Message)); building from source instead."
+        return $false
+    } finally {
+        Remove-Item -Force $tmp -ErrorAction SilentlyContinue
+    }
+}
+
+function Install-FromSource {
+    $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
+    if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+        Step 'Rust not found; installing rustup via winget'
+        if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+            throw 'winget is not available. Install Rust from https://rustup.rs and re-run this script.'
+        }
+        winget install --id Rustlang.Rustup -e --silent --accept-package-agreements --accept-source-agreements
+        Invoke-Native { & "$env:USERPROFILE\.cargo\bin\rustup.exe" default stable } | Out-Null
+    }
+
+    $hint = "cargo build failed. Windows builds need the MSVC C++ build tools: winget install Microsoft.VisualStudio.2022.BuildTools --override `"--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive`""
+    Step 'Building plumemcp (release). The first build downloads dependencies and takes a few minutes...'
+    if ($LocalRoot) {
+        Push-Location $LocalRoot
+        try { $code = Invoke-Native { cargo build --release --locked } } finally { Pop-Location }
+        if ($code -ne 0) { throw $hint }
+        Copy-Item -Force (Join-Path $LocalRoot 'target\release\plumemcp.exe') $BinPath
+    } else {
+        $root = Join-Path $env:TEMP "plumemcp-build-$([guid]::NewGuid())"
+        try {
+            $code = Invoke-Native { cargo install --locked --git "https://github.com/$Repo" plumemcp --root $root }
+            if ($code -ne 0) { throw $hint }
+            Copy-Item -Force (Join-Path $root 'bin\plumemcp.exe') $BinPath
+        } finally {
+            Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+# --- Uninstall ---------------------------------------------------------------
+if ($Uninstall) {
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        Invoke-Native -Quiet { claude mcp remove --scope user $ServerName } | Out-Null
+    }
+    if (Test-Path $DesktopConfig) {
+        $config = Read-DesktopConfig
+        if ($config.mcpServers -and ($config.mcpServers.PSObject.Properties.Name -contains $ServerName)) {
+            $config.mcpServers.PSObject.Properties.Remove($ServerName)
+            Write-Utf8NoBom $DesktopConfig ($config | ConvertTo-Json -Depth 32)
+        }
+    }
+    if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir }
+    Step 'Uninstalled. (Impactor accounts in %APPDATA%\PlumeImpactor were left untouched.)'
+    return
+}
+
+# --- 1. Get the binary -------------------------------------------------------
+New-Item -ItemType Directory -Force $InstallDir | Out-Null
+if ($LocalRoot -or $FromSource -or -not (Install-Prebuilt)) {
+    Install-FromSource
+}
+Step "Installed $BinPath"
+
+# --- 2. Register -------------------------------------------------------------
+if (-not $NoClaudeCode) {
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        Step 'Registering with Claude Code (user scope)'
+        Invoke-Native -Quiet { claude mcp remove --scope user $ServerName } | Out-Null
+        if ($AutoRefresh) {
+            Invoke-Native { claude mcp add --scope user -e PLUME_MCP_AUTO_REFRESH=1 $ServerName -- $BinPath } | Out-Null
+        } else {
+            Invoke-Native { claude mcp add --scope user $ServerName -- $BinPath } | Out-Null
+        }
+    } else {
+        Warn "Claude Code CLI not found; skipped. Later run: claude mcp add --scope user $ServerName -- `"$BinPath`""
+    }
+}
+
+if (-not $NoDesktop) {
+    Step "Registering with Claude Desktop ($DesktopConfig)"
+    New-Item -ItemType Directory -Force (Split-Path $DesktopConfig) | Out-Null
+    if (Test-Path $DesktopConfig) { Copy-Item -Force $DesktopConfig "$DesktopConfig.bak" }
+    $config = Read-DesktopConfig
+    if (-not ($config.PSObject.Properties.Name -contains 'mcpServers')) {
+        $config | Add-Member -NotePropertyName mcpServers -NotePropertyValue (New-Object PSObject)
+    }
+    $entry = [ordered]@{ command = $BinPath; args = @() }
+    if ($AutoRefresh) { $entry.env = @{ PLUME_MCP_AUTO_REFRESH = '1' } }
+    $config.mcpServers | Add-Member -Force -NotePropertyName $ServerName -NotePropertyValue ([PSCustomObject]$entry)
+    Write-Utf8NoBom $DesktopConfig ($config | ConvertTo-Json -Depth 32)
+    Write-Host '    Restart Claude Desktop to load the server.'
+}
+
+# --- 3. Prerequisite check ---------------------------------------------------
+if (-not (Get-Service -Name 'Apple Mobile Device Service' -ErrorAction SilentlyContinue)) {
+    Warn 'Apple Mobile Device Service not found. Install iTunes or "Apple Devices" (Microsoft Store) so the server can talk to iPhones/iPads.'
+}
+
+Step 'Done. Ask Claude something like: "list my connected iOS devices".'

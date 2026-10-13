@@ -1,0 +1,65 @@
+# Builds prebuilt plumemcp binaries and attaches them to a GitHub release, so
+# install.ps1 / install.sh can install without a Rust toolchain.
+# Trigger: push a tag like `v2.6.5`, or run manually from the Actions tab.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create/update (e.g. v2.6.5)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, asset: plumemcp-windows-x86_64.exe, bin: plumemcp.exe }
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, asset: plumemcp-windows-aarch64.exe, bin: plumemcp.exe }
+          - { os: macos-latest, target: aarch64-apple-darwin, asset: plumemcp-macos-aarch64, bin: plumemcp }
+          - { os: macos-latest, target: x86_64-apple-darwin, asset: plumemcp-macos-x86_64, bin: plumemcp }
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, asset: plumemcp-linux-x86_64, bin: plumemcp }
+          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, asset: plumemcp-linux-aarch64, bin: plumemcp }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+          rustup default stable
+
+      - name: Build
+        shell: bash
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Rename asset
+        shell: bash
+        run: cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: dist/*
