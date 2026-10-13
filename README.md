@@ -19,9 +19,9 @@ need a modified build of the app. Accounts you log into in the app show up here 
 
 One request from the agent becomes the same steps you would click through in the Impactor app:
 
-![Tool calls and output for a single install request](docs/assets/session.png)
+![Tool calls and output for a single install request](docs/assets/workflow.png)
 
-![Architecture: agent, impactor-mcp, Apple Developer services, devices and the Impactor app](docs/assets/architecture.png)
+![Architecture: agent, impactor-mcp, Apple Developer services, devices and the Impactor app](docs/assets/system-diagram.png)
 
 ## Install
 
@@ -89,7 +89,7 @@ Any other MCP client (Cursor, VS Code, Windsurf, Cline, ...) uses the same stdio
 
 ## Tools
 
-![Tool reference: all 36 tools in six groups](docs/assets/tools.png)
+![Tool reference: all 36 tools in six groups](docs/assets/tool-reference.png)
 
 | Area | Tools |
 | --- | --- |

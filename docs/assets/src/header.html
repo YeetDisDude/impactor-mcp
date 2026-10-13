@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@400;500&display=block" rel="stylesheet">
 <style>
   /* Editorial layout on the GitHub-dark palette used by the other README images */
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,9 +23,10 @@
   .bar i:nth-child(1) { background: #ff5f57; } .bar i:nth-child(2) { background: #febc2e; } .bar i:nth-child(3) { background: #28c840; }
   .bar span { position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #b4bac4; }
   .msgs { padding: 16px 22px 18px; display: flex; flex-direction: column; gap: 9px; }
-  .role { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--mute); }
+  .role { font-family: "Newsreader", Georgia, serif; font-style: italic; font-size: 14px; color: var(--mute); }
   .role.r { align-self: flex-end; }
-  .user { align-self: flex-end; background: var(--blue); color: #fff; padding: 9px 15px; border-radius: 14px 14px 3px 14px; font-size: 16px; margin-top: -4px; }
+  /* Chat text: open substitutes for Claude's fonts — serif for replies, sans for user messages */
+  .user { align-self: flex-end; background: var(--blue); color: #fff; padding: 9px 15px; border-radius: 14px 14px 3px 14px; font-family: "Inter", sans-serif; font-size: 16px; margin-top: -4px; }
   .tool { display: flex; align-items: baseline; gap: 10px; font-family: var(--mono); font-size: 15px; padding: 5px 0; }
   .tool .ns { color: var(--mute); }
   .tool .fill { flex: 1; border-bottom: 1.5px dotted #484f58; transform: translateY(-4px); }
@@ -37,7 +38,7 @@
   .bar2 { height: 4px; background: var(--rule); border-radius: 2px; } .bar2 div { height: 100%; width: 100%; background: var(--blue); border-radius: 2px; }
   .steps { margin-top: 9px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px 16px; font-size: 13.5px; color: var(--mute); }
   .steps span::before { content: "✓ "; color: var(--green); }
-  .say { font-family: var(--serif); font-size: 17px; line-height: 1.5; margin-top: 2px; }
+  .say { font-family: "Newsreader", Georgia, serif; font-size: 18px; line-height: 1.5; margin-top: 2px; }
 </style>
 </head>
 <body>
