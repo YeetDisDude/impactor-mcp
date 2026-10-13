@@ -4,7 +4,7 @@ param([string[]]$Names)
 
 $ErrorActionPreference = 'Stop'
 $Sizes = @{
-    'hero'         = '1000,640'
+    'banner'       = '1000,640'
     'session'      = '1000,740'
     'tools'        = '1000,965'
     'architecture' = '1000,660'
@@ -29,7 +29,7 @@ try {
         $html = Join-Path $src "$name.html"
         $out = Join-Path $PSScriptRoot "$name.png"
         $url = 'file:///' + ($html -replace '\\', '/')
-        & $browser --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=2 `
+        & $browser --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=2 --virtual-time-budget=6000 `
             "--user-data-dir=$profileDir" "--window-size=$($Sizes[$name])" "--screenshot=$out" $url 2>&1 | Out-Null
         if (Test-Path $out) { Write-Host "rendered $out" } else { Write-Warning "failed to render $name" }
     }
