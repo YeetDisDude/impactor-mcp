@@ -1,0 +1,10 @@
+#!/bin/sh
+# Picks the right prebuilt binary for this macOS/Linux machine.
+dir=$(dirname "$0")
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64) exec "$dir/impactor-mcp-macos-aarch64" "$@" ;;
+  Darwin-*) exec "$dir/impactor-mcp-macos-x86_64" "$@" ;;
+  Linux-aarch64 | Linux-arm64) exec "$dir/impactor-mcp-linux-aarch64" "$@" ;;
+  Linux-*) exec "$dir/impactor-mcp-linux-x86_64" "$@" ;;
+  *) echo "impactor-mcp: unsupported platform $(uname -s)-$(uname -m)" >&2; exit 1 ;;
+esac

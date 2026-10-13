@@ -54,10 +54,27 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+
+      # MCP bundle (.mcpb) for the MCP Registry and one-click install in Claude Desktop.
+      # Windows uses the x86_64 build (runs on Arm via emulation); a launcher picks the
+      # macOS/Linux binary by architecture.
+      - name: Build MCP bundle
+        run: |
+          mkdir -p bundle/server
+          cp mcpb/manifest.json bundle/
+          cp mcpb/impactor-mcp bundle/server/
+          cp dist/impactor-mcp-windows-x86_64.exe bundle/server/impactor-mcp.exe
+          cp dist/impactor-mcp-macos-* dist/impactor-mcp-linux-* bundle/server/
+          chmod +x bundle/server/*
+          npx -y @anthropic-ai/mcpb validate bundle/manifest.json
+          npx -y @anthropic-ai/mcpb pack bundle dist/impactor-mcp.mcpb
+          sha256sum dist/impactor-mcp.mcpb
 
       - uses: softprops/action-gh-release@v2
         with:

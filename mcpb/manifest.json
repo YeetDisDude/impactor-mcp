@@ -1,0 +1,37 @@
+{
+  "manifest_version": "0.3",
+  "name": "impactor-mcp",
+  "display_name": "Impactor",
+  "version": "2.6.5",
+  "description": "Sign, install and manage sideloaded iOS apps with the Impactor sideloader.",
+  "long_description": "Lets any AI agent do everything the Impactor sideloader does: sign in with an Apple ID (including 2FA), manage developer-portal certificates, devices and app IDs, sign and install .ipa files with tweaks, install pairing files, and refresh apps before they expire. Shares account data with the stock Impactor app.",
+  "author": { "name": "YeetDisDude", "url": "https://github.com/YeetDisDude" },
+  "repository": { "type": "git", "url": "https://github.com/YeetDisDude/impactor-mcp" },
+  "homepage": "https://github.com/YeetDisDude/impactor-mcp",
+  "license": "MIT",
+  "keywords": ["ios", "sideloading", "ipa", "impactor", "codesign"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/impactor-mcp",
+    "mcp_config": {
+      "command": "${__dirname}/server/impactor-mcp",
+      "args": [],
+      "env": { "IMPACTOR_MCP_AUTO_REFRESH": "${user_config.auto_refresh}" },
+      "platform_overrides": {
+        "win32": { "command": "${__dirname}/server/impactor-mcp.exe" }
+      }
+    }
+  },
+  "user_config": {
+    "auto_refresh": {
+      "type": "boolean",
+      "title": "Auto-refresh apps",
+      "description": "Re-sign saved apps in the background before their profiles expire. Leave off if the Impactor app's own refresh daemon is running.",
+      "default": false,
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["win32", "darwin", "linux"]
+  }
+}

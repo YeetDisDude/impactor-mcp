@@ -41,7 +41,7 @@ fn main() {
 
     let writer: Writer = Arc::new(Mutex::new(std::io::stdout()));
 
-    if std::env::var("IMPACTOR_MCP_AUTO_REFRESH").is_ok_and(|v| v == "1") {
+    if std::env::var("IMPACTOR_MCP_AUTO_REFRESH").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")) {
         tools::refresh::spawn_auto_refresh();
     }
 

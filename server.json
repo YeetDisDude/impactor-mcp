@@ -1,0 +1,19 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.YeetDisDude/impactor-mcp",
+  "title": "Impactor",
+  "description": "Sign, install and manage sideloaded iOS apps with the Impactor sideloader.",
+  "repository": {
+    "url": "https://github.com/YeetDisDude/impactor-mcp",
+    "source": "github"
+  },
+  "version": "2.6.5",
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/YeetDisDude/impactor-mcp/releases/download/v2.6.5-2/impactor-mcp.mcpb",
+      "fileSha256": "PENDING",
+      "transport": { "type": "stdio" }
+    }
+  ]
+}

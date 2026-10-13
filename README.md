@@ -49,6 +49,11 @@ afterwards. Running `install.ps1` / `install.sh` from a local clone also downloa
 binary; it only compiles (that clone) with `-FromSource` / `--from-source` or when no prebuilt
 binary exists for your platform.
 
+**Claude Desktop (one click):** download `impactor-mcp.mcpb` from the latest
+[release](https://github.com/YeetDisDude/impactor-mcp/releases/latest) and open it. Claude Desktop
+installs it as an extension. The server is also listed in the
+[MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.YeetDisDude/impactor-mcp`.
+
 Passing options:
 
 ```powershell
