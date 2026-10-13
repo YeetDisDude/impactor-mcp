@@ -49,17 +49,34 @@ body { position: relative; overflow: hidden; }
 .dot { display: none; }
 .mono { font-family: var(--mono); }
 
+/* macOS-style title bar: traffic lights on the left, centered title */
 .window-bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 11px 16px;
-  border-bottom: 1px solid var(--border);
-  background: #11161d;
-  border-radius: 8px 8px 0 0;
+  height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid #0b0e13;
+  background: #262a31;
+  border-radius: 10px 10px 0 0;
 }
-.window-bar i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; background: #30363d; }
-.window-bar span { margin-left: 8px; color: var(--muted); font-size: 13px; }
+.window-bar i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.25); }
+.window-bar i:nth-child(1) { background: #ff5f57; }
+.window-bar i:nth-child(2) { background: #febc2e; }
+.window-bar i:nth-child(3) { background: #28c840; }
+.window-bar span { position: absolute; left: 0; right: 0; text-align: center; color: #b4bac4; font-size: 13px; font-weight: 600; pointer-events: none; }
+.window { border-radius: 10px; border: 1px solid #3a3f47; background: var(--surface); overflow: hidden; }
+
+/* Group colors (GitHub Primer palette, used flat) */
+.c-blue { --c: #4493f8; }
+.c-purple { --c: #ab7df8; }
+.c-green { --c: #3fb950; }
+.c-orange { --c: #db8b2a; }
+.c-teal { --c: #39c5cf; }
+.c-pink { --c: #f778ba; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--c); display: inline-block; flex: none; }
+.tint { background: color-mix(in srgb, var(--c) 14%, transparent); border: 1px solid color-mix(in srgb, var(--c) 40%, transparent); color: var(--c); }
 
 /* Tool call row used in chat transcripts */
 .tool {
@@ -77,6 +94,7 @@ body { position: relative; overflow: hidden; }
 .tool .ok { margin-left: auto; color: var(--muted); font-family: var(--sans); font-size: 13px; }
 .tool .ok::first-letter { color: var(--green); }
 .tool .ns { color: var(--faint); }
+.tool .fn { color: var(--c, var(--text)); }
 
 .bar { height: 4px; border-radius: 2px; background: var(--border-soft); overflow: hidden; }
 .bar > div { height: 100%; background: var(--accent); }

@@ -13,12 +13,14 @@
   .step { padding: 14px 16px; }
   .left .step + .step { margin-top: 16px; }
   .head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .num { width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; font-size: 12px; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); }
+  .num { width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; font-size: 12px; font-family: var(--mono); font-weight: 600; }
+  .head .name { color: var(--c); }
+  .card.step { border-top: 2px solid var(--c); }
   .head .name { font-family: var(--mono); font-size: 15px; }
   .head .desc { color: var(--faint); font-size: 13px; margin-left: auto; }
   pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--text); background: var(--inset); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; white-space: pre; }
   .log div { font-family: var(--mono); font-size: 13px; line-height: 1.85; color: var(--text); display: flex; gap: 12px; }
-  .log .pct { color: var(--faint); width: 40px; text-align: right; }
+  .log .pct { color: #db8b2a; width: 40px; text-align: right; }
   .log .fin { color: var(--green); }
   .right .step { height: 100%; display: flex; flex-direction: column; }
   .right pre { flex: 1; }
@@ -34,24 +36,24 @@
 
   <div class="grid">
     <div class="left">
-      <div class="card step">
-        <div class="head"><div class="num">1</div><span class="name">device_list</span><span class="desc">find the device</span></div>
+      <div class="card step c-green">
+        <div class="head"><div class="num tint">1</div><span class="name">device_list</span><span class="desc">find the device</span></div>
 <pre>{ <span class="k">"count"</span>: <span class="n">1</span>, <span class="k">"devices"</span>: [{
     <span class="k">"name"</span>: <span class="s">"iPad"</span>, <span class="k">"connection"</span>: <span class="s">"usb"</span>,
     <span class="k">"udid"</span>: <span class="s">"00008xxx-xxxxxxxxxxxxxxxx"</span>,
     <span class="k">"is_mac"</span>: <span class="b">false</span> }] }</pre>
       </div>
 
-      <div class="card step">
-        <div class="head"><div class="num">2</div><span class="name">package_inspect</span><span class="desc">detect the app type</span></div>
+      <div class="card step c-orange">
+        <div class="head"><div class="num tint">2</div><span class="name">package_inspect</span><span class="desc">detect the app type</span></div>
 <pre>{ <span class="k">"name"</span>: <span class="s">"SideStore"</span>,
   <span class="k">"app_type"</span>: <span class="s">"SideStore"</span>,
   <span class="k">"bundle_identifier"</span>: <span class="s">"com.SideStore.SideStore"</span>,
   <span class="k">"supports_pairing_file"</span>: <span class="b">true</span>, ... }</pre>
       </div>
 
-      <div class="card step">
-        <div class="head"><div class="num">3</div><span class="name">sign_and_install</span><span class="desc">progress notifications</span></div>
+      <div class="card step c-orange">
+        <div class="head"><div class="num tint">3</div><span class="name">sign_and_install</span><span class="desc">progress notifications</span></div>
         <div class="log">
           <div><span class="pct">20%</span>Ensuring account is valid...</div>
           <div><span class="pct">30%</span>Ensuring device is registered...</div>
@@ -65,8 +67,8 @@
     </div>
 
     <div class="right">
-      <div class="card step">
-        <div class="head"><div class="num">4</div><span class="name">sign_and_install</span><span class="desc">result</span></div>
+      <div class="card step c-orange">
+        <div class="head"><div class="num tint">4</div><span class="name">sign_and_install</span><span class="desc">result</span></div>
 <pre>{
   <span class="k">"success"</span>: <span class="b">true</span>,
   <span class="k">"mode"</span>: <span class="s">"apple_id"</span>,

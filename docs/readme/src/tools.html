@@ -12,10 +12,13 @@
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .cat { padding: 16px 18px; }
   .cat h3 { display: flex; align-items: center; font-size: 16px; font-weight: 600; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-soft); }
-  .cat h3 .n { margin-left: auto; color: var(--faint); font-size: 13px; font-weight: 400; }
+  .cat h3 { gap: 10px; }
+  .cat h3 .n { margin-left: auto; font-size: 12.5px; font-weight: 600; padding: 1px 8px; border-radius: 10px; }
+  .card.cat { border-top: 3px solid var(--c); }
+  li code::before { content: ""; display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--c); margin: 0 8px 3px 0; }
   ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
   li { display: flex; gap: 12px; align-items: baseline; font-size: 13.5px; color: var(--muted); }
-  li code { font-family: var(--mono); font-size: 13.5px; color: var(--text); flex: none; width: 232px; }
+  li code { font-family: var(--mono); font-size: 13.5px; color: var(--text); flex: none; width: 244px; }
   .note { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.55; }
 </style>
 </head>
@@ -30,8 +33,8 @@
   </header>
 
   <div class="grid">
-    <div class="card cat">
-      <h3>Accounts<span class="n">9</span></h3>
+    <div class="card cat c-blue">
+      <h3><span class="swatch"></span>Accounts<span class="n tint">9</span></h3>
       <ul>
         <li><code>account_login</code>Apple ID sign-in</li>
         <li><code>account_submit_2fa</code>2FA code or SMS</li>
@@ -45,8 +48,8 @@
       </ul>
     </div>
 
-    <div class="card cat">
-      <h3>Developer portal<span class="n">10</span></h3>
+    <div class="card cat c-purple">
+      <h3><span class="swatch"></span>Developer portal<span class="n tint">10</span></h3>
       <ul>
         <li><code>portal_list_certificates</code>dev certificates</li>
         <li><code>portal_revoke_certificate</code>free a slot</li>
@@ -61,8 +64,8 @@
       </ul>
     </div>
 
-    <div class="card cat">
-      <h3>Devices<span class="n">8</span></h3>
+    <div class="card cat c-green">
+      <h3><span class="swatch"></span>Devices<span class="n tint">8</span></h3>
       <ul>
         <li><code>device_list</code>USB, Wi-Fi or Mac</li>
         <li><code>device_info</code>model, iOS version</li>
@@ -75,8 +78,8 @@
       </ul>
     </div>
 
-    <div class="card cat">
-      <h3>Signing<span class="n">3</span></h3>
+    <div class="card cat c-orange">
+      <h3><span class="swatch"></span>Signing<span class="n tint">3</span></h3>
       <ul>
         <li><code>sign_and_install</code>sign, then install / export</li>
         <li><code>package_inspect</code>read an .ipa or .app</li>
@@ -85,8 +88,8 @@
       <p class="note">Apple ID, ad-hoc, PEM and no-modify modes. Tweaks (.deb, .dylib, .framework), custom name / bundle id / version / icon / entitlements, ElleKit, Liquid Glass, ProMotion, file sharing.</p>
     </div>
 
-    <div class="card cat">
-      <h3>Auto-refresh<span class="n">4</span></h3>
+    <div class="card cat c-teal">
+      <h3><span class="swatch"></span>Auto-refresh<span class="n tint">4</span></h3>
       <ul>
         <li><code>refresh_list</code>saved apps and due dates</li>
         <li><code>refresh_run_due</code>re-sign what is due</li>
@@ -96,8 +99,8 @@
       <p class="note">Free-account profiles expire after 7 days; apps are re-signed 3 days before. Optional background mode.</p>
     </div>
 
-    <div class="card cat">
-      <h3>Mach-O<span class="n">2</span></h3>
+    <div class="card cat c-pink">
+      <h3><span class="swatch"></span>Mach-O<span class="n tint">2</span></h3>
       <ul>
         <li><code>macho_info</code>dylibs, entitlements</li>
         <li><code>macho_edit</code>add / replace dylib, SDK</li>
