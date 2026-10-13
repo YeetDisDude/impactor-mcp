@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { width: 1600px; height: 820px; }
+  .wrap { position: relative; width: 1600px; height: 820px; }
+  header { position: absolute; left: 80px; top: 52px; }
+  h2 { font-size: 38px; letter-spacing: -0.6px; font-weight: 600; }
+  header p { color: var(--muted); font-size: 18px; margin-top: 8px; }
+  .box { position: absolute; padding: 22px 24px; }
+  .box h3 { font-size: 19px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+  .box h3 .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; flex: none; }
+  .box p { color: var(--muted); font-size: 14.5px; line-height: 1.6; margin-top: 10px; }
+  .box p b { color: var(--text); font-weight: 600; }
+  .agent { left: 80px; top: 330px; width: 330px; }
+  .agents { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+  .agents span { font-size: 13px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); color: var(--muted); }
+  .mcp { left: 560px; top: 200px; width: 440px; border-color: #4493f8; }
+  .mcp .cats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .mcp .cats div { font-family: var(--mono); font-size: 13.5px; padding: 9px 12px; border-radius: 6px; background: var(--inset); border: 1px solid var(--border); color: #cfd5e3; }
+  .mcp .cats div i { font-style: normal; color: var(--faint); float: right; }
+  .crates { margin-top: 16px; padding: 14px 16px; border-radius: 6px; border: 1px dashed var(--border); }
+  .crates b { font-size: 14px; color: var(--text); }
+  .crates p { margin-top: 6px !important; font-family: var(--mono); font-size: 13px !important; }
+  .r { left: 1160px; width: 380px; }
+  .r1 { top: 150px; } .r2 { top: 365px; } .r3 { top: 580px; }
+  svg.lines { position: absolute; inset: 0; pointer-events: none; }
+  .lbl { position: absolute; font-family: var(--mono); font-size: 12.5px; color: var(--muted); background: var(--bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="backdrop"></div>
+<div class="wrap">
+  <header>
+    <h2>Architecture</h2>
+    <p>A standalone server built on the official Impactor crates — the app itself is never modified.</p>
+  </header>
+
+  <svg class="lines" viewBox="0 0 1600 820">
+    <defs>
+      <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="400" y1="0" x2="1170" y2="0"><stop offset="0" stop-color="#6e7681"/><stop offset="1" stop-color="#6e7681"/></linearGradient>
+      <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#6e7681"/></marker>
+    </defs>
+    <path d="M410 457 H560" stroke="url(#g)" stroke-width="1.5" fill="none" marker-start="url(#a)" marker-end="url(#a)"/>
+    <path d="M1000 330 C1080 330 1080 219 1160 219" stroke="url(#g)" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <path d="M1000 400 C1080 400 1080 434 1160 434" stroke="url(#g)" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <path d="M1000 470 C1080 470 1080 649 1160 649" stroke="url(#g)" stroke-width="1.5" fill="none" marker-start="url(#a)" marker-end="url(#a)"/>
+  </svg>
+  <span class="lbl" style="left:436px;top:423px">MCP · stdio</span>
+  <span class="lbl" style="left:1046px;top:252px">HTTPS</span>
+  <span class="lbl" style="left:1036px;top:384px">usbmuxd</span>
+  <span class="lbl" style="left:1010px;top:566px">shared files</span>
+
+  <div class="card box agent">
+    <h3>Your AI agent</h3>
+    <p>Calls tools in plain conversation and relays 2FA prompts back to you.</p>
+    <div class="agents"><span>Claude Code</span><span>Claude Desktop</span><span>Cursor</span><span>VS Code</span><span>Windsurf</span><span>any MCP client</span></div>
+  </div>
+
+  <div class="card box mcp">
+    <h3>impactor-mcp</h3>
+    <p>Native binary · stdio transport · progress notifications</p>
+    <div class="cats">
+      <div>account_*<i>9</i></div><div>portal_*<i>10</i></div>
+      <div>device_*<i>8</i></div><div>sign_* / package_*<i>3</i></div>
+      <div>refresh_*<i>4</i></div><div>macho_*<i>2</i></div>
+    </div>
+    <div class="crates">
+      <b>Impactor v2.6.5 crates</b>
+      <p>plume_core · plume_utils · plume_store · idevice</p>
+    </div>
+  </div>
+
+  <div class="card box r r1">
+    <h3>Apple Developer services</h3>
+    <p><b>Apple ID + 2FA</b>, development certificates, devices, app IDs, app groups and <b>provisioning profiles</b>.</p>
+  </div>
+  <div class="card box r r2">
+    <h3>iPhone / iPad / Mac</h3>
+    <p><b>Install</b> signed apps, pair, push profiles and <b>pairing files</b> — over USB or Wi-Fi.</p>
+  </div>
+  <div class="card box r r3">
+    <h3>Impactor app</h3>
+    <p>Same <b>accounts.json</b>, keys and refresh store — log in once, use it from both.</p>
+  </div>
+</div>
+</body>
+</html>

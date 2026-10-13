@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { width: 1600px; height: 850px; }
+  .wrap { position: relative; padding: 60px 80px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 34px; }
+  h2 { font-size: 38px; letter-spacing: -0.6px; font-weight: 600; }
+  header p { color: var(--muted); font-size: 19px; margin-top: 10px; }
+  .count { font-size: 15px; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; }
+  
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .cat { padding: 22px 24px 18px; }
+  .cat h3 { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border-soft); }
+  .cat h3 .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; }
+  .cat h3 .n { margin-left: auto; color: var(--faint); font-size: 14px; font-weight: 600; }
+  ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  li { display: flex; gap: 12px; align-items: baseline; font-size: 14px; color: var(--muted); }
+  li code { font-family: var(--mono); font-size: 13.5px; color: var(--text); flex: none; min-width: 218px; }
+</style>
+</head>
+<body>
+<div class="backdrop"></div>
+<div class="wrap">
+  <header>
+    <div>
+      <h2>Tool reference</h2>
+      <p>Covers the features of the Impactor app and the plumesign CLI.</p>
+    </div>
+    <div class="count">36 tools · 6 groups</div>
+  </header>
+
+  <div class="grid">
+    <div class="card cat">
+      <h3>Accounts<span class="n">9</span></h3>
+      <ul>
+        <li><code>account_login</code>Apple ID sign-in</li>
+        <li><code>account_submit_2fa</code>2FA code or SMS</li>
+        <li><code>account_list</code>saved accounts</li>
+        <li><code>account_switch</code>select account</li>
+        <li><code>account_remove</code>log out</li>
+        <li><code>account_teams</code>list teams</li>
+        <li><code>account_set_team</code>pick a team</li>
+        <li><code>account_cancel_login</code>abort a login</li>
+        <li><code>settings_set_locale</code>app language</li>
+      </ul>
+    </div>
+
+    <div class="card cat">
+      <h3>Developer portal<span class="n">10</span></h3>
+      <ul>
+        <li><code>portal_list_certificates</code>dev certificates</li>
+        <li><code>portal_revoke_certificate</code>free a slot</li>
+        <li><code>portal_export_certificate</code>save .p12</li>
+        <li><code>portal_list_devices</code>registered devices</li>
+        <li><code>portal_register_device</code>add a UDID</li>
+        <li><code>portal_list_app_ids</code>app IDs</li>
+        <li><code>portal_delete_app_id</code>free an app ID</li>
+        <li><code>portal_list_app_groups</code>app groups</li>
+        <li><code>portal_download_profile</code>.mobileprovision</li>
+        <li><code>portal_account_info</code>developer info</li>
+      </ul>
+    </div>
+
+    <div class="card cat">
+      <h3>Devices<span class="n">8</span></h3>
+      <ul>
+        <li><code>device_list</code>USB / Wi-Fi / Mac</li>
+        <li><code>device_info</code>model, iOS, more</li>
+        <li><code>device_pair</code>trust this computer</li>
+        <li><code>device_list_apps</code>installed apps</li>
+        <li><code>device_install_app</code>install as-is</li>
+        <li><code>device_install_pairing_file</code>SideStore, StikDebug…</li>
+        <li><code>device_install_profile</code>push a profile</li>
+        <li><code>device_is_app_installed</code>check bundle id</li>
+      </ul>
+    </div>
+
+    <div class="card cat">
+      <h3>Signing<span class="n">3</span></h3>
+      <ul>
+        <li><code>sign_and_install</code>sign → install / export</li>
+        <li><code>package_inspect</code>read an .ipa / .app</li>
+        <li><code>sign_list_app_types</code>special app handling</li>
+      </ul>
+      <p style="margin-top:14px;color:var(--muted);font-size:13.5px;line-height:1.6">Apple ID · ad-hoc · PEM · no-modify modes, tweaks (.deb .dylib .framework), custom name / id / icon / entitlements, ElleKit, Liquid Glass, ProMotion, file sharing…</p>
+    </div>
+
+    <div class="card cat">
+      <h3>Auto-refresh<span class="n">4</span></h3>
+      <ul>
+        <li><code>refresh_list</code>saved apps + due dates</li>
+        <li><code>refresh_run_due</code>re-sign what's due</li>
+        <li><code>refresh_app_now</code>refresh one app</li>
+        <li><code>refresh_forget_app</code>stop refreshing</li>
+      </ul>
+      <p style="margin-top:14px;color:var(--muted);font-size:13.5px;line-height:1.6">Free-account apps expire after 7 days — refresh re-signs them 3 days early. Optional background mode.</p>
+    </div>
+
+    <div class="card cat">
+      <h3>Mach-O<span class="n">2</span></h3>
+      <ul>
+        <li><code>macho_info</code>dylibs, entitlements</li>
+        <li><code>macho_edit</code>add / replace dylib, SDK</li>
+      </ul>
+      <p style="margin-top:14px;color:var(--muted);font-size:13.5px;line-height:1.6">Inspect any binary or .app: architectures, load commands, entitlements as JSON and XML, app groups.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,89 @@
+/* Shared styles for the README images. Render with docs/images/render.ps1.
+   Deliberately plain: GitHub-dark neutrals, one accent, flat surfaces. */
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --inset: #0d1117;
+  --border: #30363d;
+  --border-soft: #21262d;
+  --text: #e6edf3;
+  --muted: #8d96a0;
+  --faint: #6e7681;
+  --accent: #4493f8;
+  --green: #3fb950;
+  --sans: "Segoe UI", -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "SF Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body { position: relative; overflow: hidden; }
+
+.backdrop { display: none; }
+.grad-text { color: var(--text); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.dot { display: none; }
+.mono { font-family: var(--mono); }
+
+.window-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #11161d;
+  border-radius: 8px 8px 0 0;
+}
+.window-bar i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; background: #30363d; }
+.window-bar span { margin-left: 8px; color: var(--muted); font-size: 13px; }
+
+/* Tool call row used in chat transcripts */
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  background: var(--inset);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text);
+}
+.tool .ok { margin-left: auto; color: var(--muted); font-family: var(--sans); font-size: 13px; }
+.tool .ok::first-letter { color: var(--green); }
+.tool .ns { color: var(--faint); }
+
+.bar { height: 4px; border-radius: 2px; background: var(--border-soft); overflow: hidden; }
+.bar > div { height: 100%; background: var(--accent); }
+
+/* JSON syntax colors (GitHub dark) */
+.k { color: #79c0ff; }
+.s { color: #a5d6ff; }
+.n { color: #79c0ff; }
+.b { color: #ff7b72; }
+.c { color: var(--faint); }

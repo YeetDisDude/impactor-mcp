@@ -1,5 +1,7 @@
 # Impactor MCP server
 
+![impactor-mcp: sign and install iOS apps from your AI agent](docs/images/hero.png)
+
 An [MCP](https://modelcontextprotocol.io) server that lets any AI agent or MCP client (Claude, Cursor, VS Code Copilot, Windsurf, ...) do everything the
 [Impactor](https://github.com/claration/Impactor) sideloader does: sign in with an Apple ID (including
 2FA), manage developer-portal certificates/devices/app IDs, sign and install `.ipa` files with
@@ -12,6 +14,14 @@ need a modified build of the app. Accounts you log into in the app show up here 
 > **Made by Claude.** This MCP server, its installers and this README were written by
 > [Claude](https://claude.ai) (Anthropic's AI model) via Claude Code. It is an unofficial
 > companion project, not affiliated with or endorsed by the Impactor authors.
+
+## What it does
+
+One request from the agent becomes the same steps you would click through in the Impactor app:
+
+![Tool calls and output for a single install request](docs/images/session.png)
+
+![Architecture: agent, impactor-mcp, Apple Developer services, devices and the Impactor app](docs/images/architecture.png)
 
 ## Install
 
@@ -78,6 +88,8 @@ Any other MCP client (Cursor, VS Code, Windsurf, Cline, ...) uses the same stdio
 ```
 
 ## Tools
+
+![Tool reference: all 36 tools in six groups](docs/images/tools.png)
 
 | Area | Tools |
 | --- | --- |
