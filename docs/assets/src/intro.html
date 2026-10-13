@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@400;500&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=block" rel="stylesheet">
 <style>
   /* Editorial layout on the GitHub-dark palette used by the other README images */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root { --paper: #0d1117; --card: #161b22; --ink: #e6edf3; --mute: #8d96a0; --rule: #30363d; --blue: #1f6feb; --green: #3fb950; --orange: #db8b2a; --serif: "Source Serif 4", Georgia, serif; --sans: "IBM Plex Sans", sans-serif; --mono: "IBM Plex Mono", monospace; }
-  body { width: 1000px; height: 640px; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
+  body { width: 1000px; height: 690px; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
   .wrap { padding: 34px 40px; }
   .top { display: flex; align-items: center; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--rule); }
   .mark { width: 52px; height: 52px; border: 1px solid #1f6feb; border-radius: 12px; display: grid; place-items: center; flex: none; background: #0d2545; }
@@ -23,22 +23,30 @@
   .bar i:nth-child(1) { background: #ff5f57; } .bar i:nth-child(2) { background: #febc2e; } .bar i:nth-child(3) { background: #28c840; }
   .bar span { position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #b4bac4; }
   .msgs { padding: 16px 22px 18px; display: flex; flex-direction: column; gap: 9px; }
-  .role { font-family: "Newsreader", Georgia, serif; font-style: italic; font-size: 14px; color: var(--mute); }
+  .role { font-family: "Inter", sans-serif; font-size: 13px; font-weight: 500; color: var(--mute); }
   .role.r { align-self: flex-end; }
   /* Chat text: open substitutes for Claude's fonts — serif for replies, sans for user messages */
   .user { align-self: flex-end; background: var(--blue); color: #fff; padding: 9px 15px; border-radius: 14px 14px 3px 14px; font-family: "Inter", sans-serif; font-size: 16px; margin-top: -4px; }
-  .tool { display: flex; align-items: baseline; gap: 10px; font-family: var(--mono); font-size: 15px; padding: 5px 0; }
-  .tool .ns { color: var(--mute); }
-  .tool .fill { flex: 1; border-bottom: 1.5px dotted #484f58; transform: translateY(-4px); }
-  .tool .ok { font-family: var(--sans); font-size: 14px; color: var(--ink); }
-  .tool .ok::before { content: "✓ "; color: var(--green); font-weight: 600; }
-  .tool .fn { color: var(--c); }
+  /* Tool calls, styled like Claude's tool-use card */
+  .tools { border: 1px solid var(--rule); border-radius: 10px; background: #0d1117; overflow: hidden; font-family: "Inter", sans-serif; }
+  .tools .head { display: flex; align-items: center; gap: 8px; padding: 9px 14px; font-size: 14px; color: var(--mute); border-bottom: 1px solid var(--rule); }
+  .tools .head b { color: var(--ink); font-weight: 500; }
+  .tools .head .ok { color: var(--green); }
+  .chev { margin-left: auto; color: var(--mute); font-size: 15px; }
+  .trow { display: flex; align-items: center; gap: 11px; padding: 8px 14px; font-size: 14.5px; }
+  .trow + .trow { border-top: 1px solid #21262d; }
+  .ico { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; flex: none; background: color-mix(in srgb, var(--c) 16%, transparent); }
+  .ico svg { width: 14px; height: 14px; }
+  .tname { color: var(--ink); font-weight: 500; }
+  .tsrv { color: var(--mute); }
+  .tres { margin-left: auto; color: var(--mute); font-size: 13.5px; }
+  .trow .chev { margin-left: 10px; font-size: 13px; }
   .progress { margin-top: 2px; padding: 11px 14px; background: #0d1117; border: 1px solid var(--rule); border-radius: 6px; }
   .progress .row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 13px; color: var(--mute); margin-bottom: 7px; }
   .bar2 { height: 4px; background: var(--rule); border-radius: 2px; } .bar2 div { height: 100%; width: 100%; background: var(--blue); border-radius: 2px; }
   .steps { margin-top: 9px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px 16px; font-size: 13.5px; color: var(--mute); }
   .steps span::before { content: "✓ "; color: var(--green); }
-  .say { font-family: "Newsreader", Georgia, serif; font-size: 18px; line-height: 1.5; margin-top: 2px; }
+  .say { font-family: "Inter", sans-serif; font-size: 15.5px; line-height: 1.6; color: var(--ink); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -56,10 +64,11 @@
       <div class="role r">You</div>
       <div class="user">Install SideStore.ipa on my iPad and keep it refreshed.</div>
       <div class="role">Agent</div>
-      <div>
-        <div class="tool"><span class="ns">impactor</span><span class="fn" style="--c:#3fb950">device_list</span><span class="fill"></span><span class="ok">iPad16,9 · USB</span></div>
-        <div class="tool"><span class="ns">impactor</span><span class="fn" style="--c:#db8b2a">package_inspect</span><span class="fill"></span><span class="ok">app type: SideStore</span></div>
-        <div class="tool"><span class="ns">impactor</span><span class="fn" style="--c:#db8b2a">sign_and_install</span><span class="fill"></span><span class="ok">completed</span></div>
+      <div class="tools">
+        <div class="head"><span class="ok">✓</span><b>Used 3 tools</b><span>from impactor</span><span class="chev">⌃</span></div>
+        <div class="trow"><span class="ico" style="--c:#3fb950"><svg viewBox="0 0 24 24" fill="none" stroke="#3fb950" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><span class="tname">device_list</span><span class="tsrv">impactor</span><span class="tres">iPad16,9 · USB</span><span class="chev">›</span></div>
+        <div class="trow"><span class="ico" style="--c:#db8b2a"><svg viewBox="0 0 24 24" fill="none" stroke="#db8b2a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><span class="tname">package_inspect</span><span class="tsrv">impactor</span><span class="tres">app type: SideStore</span><span class="chev">›</span></div>
+        <div class="trow"><span class="ico" style="--c:#db8b2a"><svg viewBox="0 0 24 24" fill="none" stroke="#db8b2a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span class="tname">sign_and_install</span><span class="tsrv">impactor</span><span class="tres">completed</span><span class="chev">›</span></div>
       </div>
       <div class="progress">
         <div class="row"><span>Finished!</span><span>100%</span></div>
