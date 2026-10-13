@@ -12,7 +12,7 @@
     {
       "registryType": "mcpb",
       "identifier": "https://github.com/YeetDisDude/impactor-mcp/releases/download/v2.6.5-2/impactor-mcp.mcpb",
-      "fileSha256": "PENDING",
+      "fileSha256": "7f0bc0dcb0483010236a5f0a984be17f0794810107858656dd1f19886ee8fce5",
       "transport": { "type": "stdio" }
     }
   ]
