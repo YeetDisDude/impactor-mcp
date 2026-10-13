@@ -1,5 +1,5 @@
-# Renders docs/readme/src/*.html to docs/readme/*.png at 2x using headless Chrome/Edge.
-# Usage: powershell -ExecutionPolicy Bypass -File docs\readme\render.ps1 [name ...]
+# Renders docs/assets/src/*.html to docs/assets/*.png at 2x using headless Chrome/Edge.
+# Usage: powershell -ExecutionPolicy Bypass -File docs\assets\render.ps1 [name ...]
 param([string[]]$Names)
 
 $ErrorActionPreference = 'Stop'
