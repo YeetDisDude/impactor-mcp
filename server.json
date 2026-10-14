@@ -11,8 +11,8 @@
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/YeetDisDude/impactor-mcp/releases/download/v2.6.5-3/impactor-mcp.mcpb",
-      "fileSha256": "b89c9fdeb4a9d5ed4b29876d5ea907c1f9b7c1c76783b734029d99b03c15b71f",
+      "identifier": "https://github.com/YeetDisDude/impactor-mcp/releases/download/v2.6.5-4/impactor-mcp.mcpb",
+      "fileSha256": "77a5f17b8e31d664b5552eade72264eaef79f022be209ad177e52555ec7f43a1",
       "transport": { "type": "stdio" }
     }
   ]
