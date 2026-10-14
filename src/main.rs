@@ -4,6 +4,7 @@
 //! written to stdout must be a protocol message, so all logging goes to stderr.
 
 mod common;
+mod login_page;
 mod tools;
 
 use std::io::{BufRead, Write};
@@ -17,7 +18,8 @@ const SUPPORTED_PROTOCOL_VERSIONS: &[&str] = &["2025-06-18", "2025-03-26", "2024
 
 const INSTRUCTIONS: &str = "Impactor sideloading server. Typical flow: `account_list` / \
 `account_login` (+ `account_submit_2fa`) -> `device_list` -> `package_inspect` -> \
-`sign_and_install`. Account data is shared with the Impactor GUI and plumesign CLI \
+`sign_and_install`. Call `account_login` without a password: it opens a local sign-in page where \
+the user enters their Apple ID credentials and 2FA code themselves. Account data is shared with the Impactor GUI and plumesign CLI \
 (accounts.json in the PlumeImpactor config directory). Tools that may need to create a new \
 development certificate accept `allow_certificate_reset`; leave it false unless the user \
 explicitly agreed, because resetting revokes existing certificates and breaks existing \

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Impactor sign-in</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #fff; --text: #1d1d1f; --muted: #6e6e73;
+    --border: #d2d2d7; --accent: #0071e3; --accent-text: #fff;
+    --error: #c9302c; --ok: #1a7f37;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #a1a1a6;
+      --border: #3a3a3c; --accent: #0a84ff; --error: #ff6961; --ok: #30d158;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+    background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  main {
+    width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  input {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  #code-input { letter-spacing: 0.3em; font-size: 20px; text-align: center; }
+  button {
+    width: 100%; margin-top: 18px; padding: 10px; font: inherit; font-weight: 600;
+    color: var(--accent-text); background: var(--accent); border: 0; border-radius: 8px; cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.link {
+    width: auto; margin: 8px 0 0; padding: 0; background: none; color: var(--accent); font-weight: 500;
+  }
+  .error { color: var(--error); margin: 12px 0 0; }
+  .ok { color: var(--ok); }
+  .note { font-size: 13px; margin-top: 18px; margin-bottom: 0; }
+  .spinner {
+    width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <section id="credentials" hidden>
+    <h1>Sign in to Impactor</h1>
+    <p>Your Apple ID is sent only to Apple from this computer. The AI agent never sees your password.</p>
+    <form id="credentials-form">
+      <label for="email">Apple ID</label>
+      <input id="email" type="email" autocomplete="username" required autofocus>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <div class="error" id="credentials-error" hidden></div>
+      <button type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <section id="working" hidden>
+    <div class="spinner"></div>
+    <h1>Signing in…</h1>
+    <p>Talking to Apple. This can take a few seconds.</p>
+  </section>
+
+  <section id="code" hidden>
+    <h1>Two-factor authentication</h1>
+    <p id="code-hint"></p>
+    <form id="code-form">
+      <label for="code-input">Verification code</label>
+      <input id="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required>
+      <div class="error" id="code-error" hidden></div>
+      <button type="submit">Verify</button>
+    </form>
+    <div id="sms"></div>
+  </section>
+
+  <section id="done" hidden>
+    <h1 class="ok">Signed in</h1>
+    <p id="done-text"></p>
+    <p class="note">You can close this tab and go back to your agent.</p>
+  </section>
+
+  <section id="failed" hidden>
+    <h1>Sign-in failed</h1>
+    <div class="error" id="failed-error"></div>
+    <p class="note">Ask your agent to start a new sign-in. Avoid many attempts in a row: Apple may then reject even the correct password for a while.</p>
+  </section>
+
+  <section id="offline" hidden>
+    <h1>Sign-in page closed</h1>
+    <p>This sign-in has ended. Ask your agent to start a new one.</p>
+  </section>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const sections = ["credentials", "working", "code", "done", "failed", "offline"];
+  let waitingFor = null;  // state version that was current when we submitted
+  let emailFilled = false;
+  let smsKey = "";
+  let failures = 0;
+
+  function show(id) {
+    for (const s of sections) $(s).hidden = s !== id;
+  }
+
+  function setError(id, message) {
+    $(id).textContent = message || "";
+    $(id).hidden = !message;
+  }
+
+  async function post(path, body) {
+    const r = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Request failed (" + r.status + ")");
+  }
+
+  function renderSms(phones) {
+    const key = JSON.stringify(phones || []);
+    if (key === smsKey) return;
+    smsKey = key;
+    const box = $("sms");
+    box.replaceChildren();
+    for (const phone of phones || []) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "link";
+      b.textContent = "Text a code to the number ending in " + phone.last_two_digits;
+      b.onclick = () => submit("code", { sms_phone_id: phone.id }, "code-error");
+      box.append(b);
+    }
+  }
+
+  function render(s) {
+    if (waitingFor !== null && s.version === waitingFor && s.phase !== "done" && s.phase !== "failed") {
+      show("working");
+      return;
+    }
+    waitingFor = null;
+    if (!emailFilled && s.email) {
+      $("email").value = s.email;
+      emailFilled = true;
+    }
+    switch (s.phase) {
+      case "credentials":
+        setError("credentials-error", s.error);
+        if ($("credentials").hidden) {
+          $("password").value = "";
+          show("credentials");
+          ($("email").value ? $("password") : $("email")).focus();
+        }
+        break;
+      case "signing_in":
+        show("working");
+        break;
+      case "code":
+        $("code-hint").textContent = s.method === "sms"
+          ? "Enter the code Apple sent by text message."
+          : "Enter the code shown on your iPhone, iPad or Mac.";
+        renderSms(s.phones);
+        if ($("code").hidden) {
+          $("code-input").value = "";
+          show("code");
+          $("code-input").focus();
+        }
+        break;
+      case "done":
+        $("done-text").textContent = (s.first_name ? "Welcome, " + s.first_name + ". " : "") +
+          (s.email || "Your account") + " is saved in Impactor.";
+        show("done");
+        return true;
+      case "failed":
+        $("failed-error").textContent = s.error || "Unknown error";
+        show("failed");
+        return true;
+    }
+    return false;
+  }
+
+  async function submit(path, body, errorId) {
+    setError(errorId, "");
+    try {
+      const r = await fetch("status", { cache: "no-store" });
+      const before = (await r.json()).version;
+      await post(path, body);
+      waitingFor = before;
+      show("working");
+    } catch (e) {
+      setError(errorId, e.message);
+    }
+  }
+
+  $("credentials-form").onsubmit = (e) => {
+    e.preventDefault();
+    submit("credentials", { email: $("email").value, password: $("password").value }, "credentials-error");
+  };
+  $("code-form").onsubmit = (e) => {
+    e.preventDefault();
+    submit("code", { code: $("code-input").value }, "code-error");
+  };
+
+  async function poll() {
+    try {
+      const r = await fetch("status", { cache: "no-store" });
+      if (!r.ok) throw new Error(String(r.status));
+      failures = 0;
+      if (render(await r.json())) return;
+    } catch (e) {
+      if (++failures >= 3) {
+        show("offline");
+        return;
+      }
+    }
+    setTimeout(poll, 1000);
+  }
+  poll();
+</script>
+</body>
+</html>

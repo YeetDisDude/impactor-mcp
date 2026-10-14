@@ -2,20 +2,26 @@
 //! removal, team selection and app settings.
 
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use plume_core::auth::{Account, TwoFactorAction, TwoFactorMethod, TwoFactorRequest};
 use plume_store::AccountStore;
 use serde_json::{Value, json};
 
-use crate::common::{self, Ctx, ToolResult, opt_str, opt_u64, req_str, schema, tool};
+use crate::common::{self, Ctx, ToolResult, bool_or, opt_str, opt_u64, req_str, schema, tool};
+use crate::login_page;
 
 /// How long the login thread waits for the user to supply a 2FA code.
 const TFA_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 /// How long a single MCP call waits for the next login event before returning
 /// `in_progress`.
 const CALL_WAIT: Duration = Duration::from_secs(3 * 60);
+/// How long the sign-in page waits for the user to submit their Apple ID.
+const CREDENTIALS_TIMEOUT: Duration = Duration::from_secs(15 * 60);
+/// Password attempts allowed on one sign-in page. Kept low because repeated
+/// logins make Apple reject even the correct password for a while.
+const PAGE_ATTEMPTS: u32 = 3;
 
 pub fn definitions() -> Vec<Value> {
     vec![
@@ -28,17 +34,23 @@ pub fn definitions() -> Vec<Value> {
         ),
         tool(
             "account_login",
-            "Log in with an Apple ID and save it as the selected account. If Apple requires \
-             two-factor authentication the result has status \"2fa_required\": ask the user for the \
-             code (pushed to their trusted devices, or by SMS) and call `account_submit_2fa`. On \
-             success the result has status \"logged_in\". Starting a new login cancels any pending \
-             one. Use an Apple ID dedicated to sideloading if possible.",
+            "Log in with an Apple ID and save it as the selected account. Call it WITHOUT a \
+             password (the normal way): it opens a sign-in page on this computer in the user's \
+             browser, where they type their Apple ID, password and 2FA code themselves, so the \
+             password never passes through the agent. The result has status \"awaiting_user\" and \
+             a `sign_in_url`; then call `account_submit_2fa` with no arguments to wait until it \
+             finishes. Only when the user explicitly wants to and the client allows it, pass \
+             `email` and `password` directly; then a \"2fa_required\" result means asking for the \
+             code and calling `account_submit_2fa` with it. On success the status is \
+             \"logged_in\". Starting a new login cancels any pending one. Use an Apple ID \
+             dedicated to sideloading if possible.",
             schema(
                 json!({
-                    "email": { "type": "string", "description": "Apple ID email address." },
-                    "password": { "type": "string", "description": "Apple ID password." }
+                    "email": { "type": "string", "description": "Apple ID email address. Optional with the sign-in page (pre-fills it)." },
+                    "password": { "type": "string", "description": "Apple ID password. Omit to use the sign-in page." },
+                    "open_browser": { "type": "boolean", "description": "Open the sign-in page in the default browser (default true)." }
                 }),
-                &["email", "password"],
+                &[],
             ),
         ),
         tool(
@@ -46,7 +58,8 @@ pub fn definitions() -> Vec<Value> {
             "Continue a pending `account_login`. Pass `code` with the 6-digit verification code, \
              or `sms_phone_id` (an id from `trusted_phone_numbers`) to have Apple text a code to that \
              number (then call again with `code`). With neither argument it just waits for the \
-             login's next state (use after an \"in_progress\" result). Returns the same shape as \
+             login's next state (use after an \"awaiting_user\" or \"in_progress\" result, or \
+             while the user finishes on the sign-in page). Returns the same shape as \
              `account_login`.",
             schema(
                 json!({
@@ -292,23 +305,108 @@ async fn settings_set_locale(args: &Value) -> ToolResult {
 // ---------------------------------------------------------------------------
 // Login with multi-call 2FA
 // ---------------------------------------------------------------------------
+//
+// A login runs on its own thread and publishes its progress in a
+// `LoginShared`. The MCP tools and the local sign-in page (`login_page.rs`)
+// both read that state, so either one can supply the 2FA code. With the page,
+// the Apple ID password is typed into the user's browser and never passes
+// through the MCP client.
 
-enum LoginEvent {
+#[derive(Clone)]
+pub(crate) enum Phase {
+    /// Waiting for the user to submit email and password on the sign-in page.
+    AwaitingCredentials { error: Option<String> },
+    /// Talking to Apple.
+    SigningIn,
     NeedsCode(TwoFactorRequest),
     Done(Result<Value, String>),
 }
 
+impl Phase {
+    /// Phases that wait for someone or are final, as opposed to Apple round trips.
+    fn is_settled(&self) -> bool {
+        !matches!(self, Phase::SigningIn)
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct LoginSnapshot {
+    pub version: u64,
+    pub phase: Phase,
+    pub email: Option<String>,
+}
+
+pub(crate) struct LoginShared {
+    state: Mutex<LoginSnapshot>,
+    changed: Condvar,
+}
+
+impl LoginShared {
+    fn new(phase: Phase, email: Option<String>) -> Self {
+        Self {
+            state: Mutex::new(LoginSnapshot { version: 0, phase, email }),
+            changed: Condvar::new(),
+        }
+    }
+
+    fn lock(&self) -> MutexGuard<'_, LoginSnapshot> {
+        self.state.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    fn set(&self, phase: Phase) {
+        let mut state = self.lock();
+        state.version += 1;
+        state.phase = phase;
+        self.changed.notify_all();
+    }
+
+    fn set_email(&self, email: &str) {
+        self.lock().email = Some(email.to_string());
+    }
+
+    pub(crate) fn snapshot(&self) -> LoginSnapshot {
+        self.lock().clone()
+    }
+
+    /// Blocks until there is a settled phase newer than `after`, or `timeout`.
+    fn wait_settled(&self, after: u64, timeout: Duration) -> LoginSnapshot {
+        let deadline = Instant::now() + timeout;
+        let mut state = self.lock();
+        while !(state.version > after && state.phase.is_settled()) {
+            let now = Instant::now();
+            if now >= deadline {
+                break;
+            }
+            state = self
+                .changed
+                .wait_timeout(state, deadline - now)
+                .unwrap_or_else(|p| p.into_inner())
+                .0;
+        }
+        state.clone()
+    }
+}
+
 struct PendingLogin {
     generation: u64,
-    email: String,
+    shared: Arc<LoginShared>,
     action_tx: Sender<TwoFactorAction>,
-    event_rx: Arc<Mutex<Receiver<LoginEvent>>>,
+    /// Set when the credentials come from the sign-in page.
+    creds_tx: Option<Sender<(String, String)>>,
+    page_url: Option<String>,
+    /// Last state version returned to the MCP client.
+    reported: u64,
+}
+
+enum Credentials {
+    Given { email: String, password: String },
+    FromPage(Receiver<(String, String)>),
 }
 
 static PENDING: Mutex<Option<PendingLogin>> = Mutex::new(None);
 static GENERATION: Mutex<u64> = Mutex::new(0);
 
-fn lock_pending() -> std::sync::MutexGuard<'static, Option<PendingLogin>> {
+fn lock_pending() -> MutexGuard<'static, Option<PendingLogin>> {
     PENDING.lock().unwrap_or_else(|p| p.into_inner())
 }
 
@@ -321,13 +419,12 @@ fn clear_pending(generation: u64) {
 }
 
 async fn account_login(args: &Value) -> ToolResult {
-    let email = req_str(args, "email")?;
+    let email = opt_str(args, "email");
     let password = args
         .get("password")
         .and_then(Value::as_str)
         .filter(|s| !s.is_empty())
-        .map(str::to_string)
-        .ok_or_else(|| "Missing required argument `password`".to_string())?;
+        .map(str::to_string);
 
     let generation = {
         let mut g = GENERATION.lock().unwrap_or_else(|p| p.into_inner());
@@ -335,80 +432,152 @@ async fn account_login(args: &Value) -> ToolResult {
         *g
     };
 
-    let (event_tx, event_rx) = mpsc::channel::<LoginEvent>();
     let (action_tx, action_rx) = mpsc::channel::<TwoFactorAction>();
-    let event_rx = Arc::new(Mutex::new(event_rx));
+    let (credentials, creds_tx, shared) = match password {
+        Some(password) => {
+            let email = email.ok_or("Missing required argument `email`")?;
+            let shared = LoginShared::new(Phase::SigningIn, Some(email.clone()));
+            (Credentials::Given { email, password }, None, shared)
+        }
+        None => {
+            let (tx, rx) = mpsc::channel();
+            let shared = LoginShared::new(Phase::AwaitingCredentials { error: None }, email);
+            (Credentials::FromPage(rx), Some(tx), shared)
+        }
+    };
+    let shared = Arc::new(shared);
+    let use_page = creds_tx.is_some();
 
     {
-        // Replacing drops the previous `action_tx`, which makes the previous
-        // login's 2FA prompt fail with "cancelled".
+        // Replacing drops the previous login's senders, which makes its
+        // credential or 2FA wait fail with "cancelled".
         let mut guard = lock_pending();
         if let Some(old) = guard.take() {
-            log::info!("Cancelling pending login for {}", old.email);
+            log::info!("Cancelling pending login (generation {})", old.generation);
         }
         *guard = Some(PendingLogin {
             generation,
-            email: email.clone(),
+            shared: shared.clone(),
             action_tx,
-            event_rx: event_rx.clone(),
+            creds_tx,
+            page_url: None,
+            reported: 0,
         });
     }
 
-    let thread_email = email.clone();
-    let spawn = std::thread::Builder::new()
+    if let Err(e) = spawn_login(shared.clone(), credentials, action_rx) {
+        clear_pending(generation);
+        return Err(e);
+    }
+
+    if !use_page {
+        return wait_and_report(generation, &shared, 0);
+    }
+
+    let url = match login_page::start(generation, shared.clone()) {
+        Ok(url) => url,
+        Err(e) => {
+            lock_pending().take();
+            return Err(format!("Failed to start the local sign-in page: {e}"));
+        }
+    };
+    if let Some(p) = lock_pending().as_mut().filter(|p| p.generation == generation) {
+        p.page_url = Some(url.clone());
+    }
+    let browser_opened = bool_or(args, "open_browser", true) && login_page::open_browser(&url);
+
+    Ok(json!({
+        "status": "awaiting_user",
+        "sign_in_url": url,
+        "browser_opened": browser_opened,
+        "next": "A sign-in page on this computer is waiting for the user (opened in their browser \
+                 if browser_opened is true; otherwise give them sign_in_url). They enter their \
+                 Apple ID, password and 2FA code there; do not ask for the password. Then call \
+                 `account_submit_2fa` with no arguments to wait for the result.",
+    }))
+}
+
+fn spawn_login(
+    shared: Arc<LoginShared>,
+    credentials: Credentials,
+    action_rx: Receiver<TwoFactorAction>,
+) -> Result<(), String> {
+    std::thread::Builder::new()
         .name("impactor-mcp-login".into())
         .spawn(move || {
             let result = match tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
             {
-                Ok(rt) => rt.block_on(run_login(
-                    thread_email,
-                    password,
-                    event_tx.clone(),
-                    action_rx,
-                )),
+                Ok(rt) => rt.block_on(run_login(&shared, credentials, action_rx)),
                 Err(e) => Err(format!("Failed to start login runtime: {e}")),
             };
-            let _ = event_tx.send(LoginEvent::Done(result));
-        });
-
-    if let Err(e) = spawn {
-        clear_pending(generation);
-        return Err(format!("Failed to start login thread: {e}"));
-    }
-
-    wait_for_event(&event_rx, generation, &email)
+            shared.set(Phase::Done(result));
+        })
+        .map(|_| ())
+        .map_err(|e| format!("Failed to start login thread: {e}"))
 }
 
 async fn run_login(
-    email: String,
-    password: String,
-    event_tx: Sender<LoginEvent>,
+    shared: &LoginShared,
+    credentials: Credentials,
     action_rx: Receiver<TwoFactorAction>,
 ) -> Result<Value, String> {
-    let creds_email = email.clone();
-    let appleid_closure = move || -> Result<(String, String), String> {
-        Ok((creds_email.clone(), password.clone()))
-    };
-
-    let tfa_closure = move |req: TwoFactorRequest| -> Result<TwoFactorAction, String> {
-        event_tx
-            .send(LoginEvent::NeedsCode(req))
-            .map_err(|_| "Login cancelled".to_string())?;
-        match action_rx.recv_timeout(TFA_TIMEOUT) {
-            Ok(action) => Ok(action),
+    let tfa_closure = |req: TwoFactorRequest| -> Result<TwoFactorAction, String> {
+        shared.set(Phase::NeedsCode(req));
+        let action = match action_rx.recv_timeout(TFA_TIMEOUT) {
+            Ok(action) => action,
             Err(RecvTimeoutError::Timeout) => {
-                Err("Timed out waiting for the 2FA code (10 minutes)".to_string())
+                return Err("Timed out waiting for the 2FA code (10 minutes)".to_string());
             }
-            Err(RecvTimeoutError::Disconnected) => Err("Login cancelled".to_string()),
-        }
+            Err(RecvTimeoutError::Disconnected) => return Err("Login cancelled".to_string()),
+        };
+        shared.set(Phase::SigningIn);
+        Ok(action)
     };
 
-    let account = Account::login(appleid_closure, tfa_closure, common::anisette_config())
-        .await
-        .map_err(|e| format!("Login failed: {e}. Start over with `account_login`."))?;
+    let mut last_error = None;
+    for attempt in 1..=PAGE_ATTEMPTS {
+        let (email, password) = match &credentials {
+            Credentials::Given { email, password } => (email.clone(), password.clone()),
+            Credentials::FromPage(rx) => {
+                if attempt > 1 {
+                    shared.set(Phase::AwaitingCredentials { error: last_error.take() });
+                }
+                match rx.recv_timeout(CREDENTIALS_TIMEOUT) {
+                    Ok(creds) => creds,
+                    Err(RecvTimeoutError::Timeout) => {
+                        return Err("Timed out waiting for the user to sign in on the page \
+                                    (15 minutes). Start over with `account_login`."
+                            .to_string());
+                    }
+                    Err(RecvTimeoutError::Disconnected) => {
+                        return Err("Login cancelled".to_string());
+                    }
+                }
+            }
+        };
+        shared.set_email(&email);
+        shared.set(Phase::SigningIn);
 
+        let appleid_closure = || -> Result<(String, String), String> {
+            Ok((email.clone(), password.clone()))
+        };
+        match Account::login(appleid_closure, &tfa_closure, common::anisette_config()).await {
+            Ok(account) => return save_account(email, account).await,
+            Err(e) => {
+                let message = format!("Login failed: {e}");
+                if matches!(credentials, Credentials::Given { .. }) || attempt == PAGE_ATTEMPTS {
+                    return Err(format!("{message}. Start over with `account_login`."));
+                }
+                last_error = Some(message);
+            }
+        }
+    }
+    Err("Login failed. Start over with `account_login`.".to_string())
+}
+
+async fn save_account(email: String, account: Account) -> Result<Value, String> {
     let mut store = AccountStore::load(&Some(common::store_path()))
         .await
         .map_err(|e| format!("Logged in, but failed to load account store: {e}"))?;
@@ -427,78 +596,91 @@ async fn run_login(
     }))
 }
 
-/// Blocks (this call's runtime has nothing else to do) until the login thread
-/// reports its next state.
-fn wait_for_event(
-    event_rx: &Arc<Mutex<Receiver<LoginEvent>>>,
-    generation: u64,
-    email: &str,
-) -> ToolResult {
-    let rx = event_rx.lock().unwrap_or_else(|p| p.into_inner());
-    match rx.recv_timeout(CALL_WAIT) {
-        Ok(LoginEvent::NeedsCode(req)) => {
-            let phones: Vec<Value> = req
-                .trusted_phone_numbers
-                .iter()
-                .map(|p| json!({ "id": p.id, "last_two_digits": p.last_two_digits }))
-                .collect();
-            let (method, next) = match req.method {
+/// Waits for the login's next settled state after version `after` and turns it
+/// into the tool result.
+fn wait_and_report(generation: u64, shared: &LoginShared, after: u64) -> ToolResult {
+    let snapshot = shared.wait_settled(after, CALL_WAIT);
+    let page_url = {
+        let mut guard = lock_pending();
+        match guard.as_mut().filter(|p| p.generation == generation) {
+            Some(p) => {
+                p.reported = p.reported.max(snapshot.version);
+                p.page_url.clone()
+            }
+            None => None,
+        }
+    };
+    let email = snapshot.email.clone().unwrap_or_default();
+
+    match snapshot.phase {
+        Phase::Done(result) => {
+            clear_pending(generation);
+            result
+        }
+        Phase::NeedsCode(req) => {
+            let phones = phones_json(&req);
+            let (method, mut next) = match req.method {
                 TwoFactorMethod::Device if !phones.is_empty() => (
                     "device",
                     "Ask the user for the code shown on their trusted Apple device and call \
                      `account_submit_2fa` with `code`, or call it with `sms_phone_id` to get a \
-                     code by SMS instead.",
+                     code by SMS instead."
+                        .to_string(),
                 ),
                 TwoFactorMethod::Device => (
                     "device",
                     "Ask the user for the code shown on their trusted Apple device and call \
-                     `account_submit_2fa` with `code`.",
+                     `account_submit_2fa` with `code`."
+                        .to_string(),
                 ),
                 TwoFactorMethod::Sms => (
                     "sms",
-                    "Ask the user for the code sent by SMS and call `account_submit_2fa` with `code`.",
+                    "Ask the user for the code sent by SMS and call `account_submit_2fa` with `code`."
+                        .to_string(),
                 ),
             };
+            if page_url.is_some() {
+                next = "The user can type the 2FA code on the sign-in page; call \
+                        `account_submit_2fa` with no arguments to wait for the result. \
+                        Alternatively: "
+                    .to_string()
+                    + &next;
+            }
             Ok(json!({
                 "status": "2fa_required",
                 "email": email,
                 "method": method,
                 "trusted_phone_numbers": phones,
+                "sign_in_url": page_url,
                 "next": next,
             }))
         }
-        Ok(LoginEvent::Done(result)) => {
-            clear_pending(generation);
-            result
-        }
-        Err(RecvTimeoutError::Timeout) => Ok(json!({
+        Phase::AwaitingCredentials { error } => Ok(json!({
+            "status": "awaiting_user",
+            "sign_in_url": page_url,
+            "last_error": error,
+            "next": "Still waiting for the user to sign in on the page. Call `account_submit_2fa` \
+                     with no arguments to keep waiting, or `account_cancel_login`.",
+        })),
+        Phase::SigningIn => Ok(json!({
             "status": "in_progress",
             "email": email,
-            "next": "Login is still running. Call `account_submit_2fa` with no arguments to keep waiting, or `account_cancel_login`.",
+            "next": "Login is still running. Call `account_submit_2fa` with no arguments to keep \
+                     waiting, or `account_cancel_login`.",
         })),
-        Err(RecvTimeoutError::Disconnected) => {
-            clear_pending(generation);
-            Err("Login thread ended unexpectedly. Start over with `account_login`.".to_string())
-        }
     }
+}
+
+fn phones_json(req: &TwoFactorRequest) -> Vec<Value> {
+    req.trusted_phone_numbers
+        .iter()
+        .map(|p| json!({ "id": p.id, "last_two_digits": p.last_two_digits }))
+        .collect()
 }
 
 async fn account_submit_2fa(args: &Value) -> ToolResult {
     let code = opt_str(args, "code");
     let sms_phone_id = opt_u64(args, "sms_phone_id");
-
-    let (generation, email, action_tx, event_rx) = {
-        let guard = lock_pending();
-        let Some(p) = guard.as_ref() else {
-            return Err("No login is pending. Start one with `account_login`.".to_string());
-        };
-        (
-            p.generation,
-            p.email.clone(),
-            p.action_tx.clone(),
-            p.event_rx.clone(),
-        )
-    };
 
     let action = match (code, sms_phone_id) {
         (Some(_), Some(_)) => {
@@ -511,21 +693,100 @@ async fn account_submit_2fa(args: &Value) -> ToolResult {
         (None, None) => None,
     };
 
-    if let Some(action) = action {
-        if action_tx.send(action).is_err() {
-            // The login thread already finished; its result (if any) is still
-            // in the event channel and is returned below.
-            log::warn!("Login thread no longer accepts 2FA input");
-        }
-    }
-    drop(action_tx);
+    let (generation, shared, after) = {
+        let guard = lock_pending();
+        let Some(p) = guard.as_ref() else {
+            return Err("No login is pending. Start one with `account_login`.".to_string());
+        };
+        let after = match action {
+            Some(action) => {
+                let current = p.shared.snapshot().version;
+                if p.action_tx.send(action).is_err() {
+                    // The login thread already finished; its result is
+                    // returned below.
+                    log::warn!("Login thread no longer accepts 2FA input");
+                }
+                current
+            }
+            None => p.reported,
+        };
+        (p.generation, p.shared.clone(), after)
+    };
 
-    wait_for_event(&event_rx, generation, &email)
+    wait_and_report(generation, &shared, after)
 }
 
 fn account_cancel_login() -> ToolResult {
     match lock_pending().take() {
-        Some(p) => Ok(json!({ "cancelled": true, "email": p.email })),
+        Some(p) => Ok(json!({ "cancelled": true, "email": p.shared.snapshot().email })),
         None => Ok(json!({ "cancelled": false, "message": "No login was pending." })),
     }
+}
+
+// ---------------------------------------------------------------------------
+// Sign-in page hooks (called from `login_page.rs`)
+// ---------------------------------------------------------------------------
+
+const NOT_CURRENT: &str = "This sign-in was cancelled or replaced. Ask your agent to start a new one.";
+
+/// Whether `generation` is still the pending login.
+pub(crate) fn page_is_current(generation: u64) -> bool {
+    lock_pending().as_ref().is_some_and(|p| p.generation == generation)
+}
+
+pub(crate) fn page_submit_credentials(
+    generation: u64,
+    email: String,
+    password: String,
+) -> Result<(), String> {
+    let guard = lock_pending();
+    let p = guard
+        .as_ref()
+        .filter(|p| p.generation == generation)
+        .ok_or(NOT_CURRENT)?;
+    if !matches!(p.shared.snapshot().phase, Phase::AwaitingCredentials { .. }) {
+        return Err("The sign-in is not waiting for a password right now.".to_string());
+    }
+    p.creds_tx
+        .as_ref()
+        .ok_or(NOT_CURRENT)?
+        .send((email, password))
+        .map_err(|_| NOT_CURRENT.to_string())
+}
+
+pub(crate) fn page_submit_action(generation: u64, action: TwoFactorAction) -> Result<(), String> {
+    let guard = lock_pending();
+    let p = guard
+        .as_ref()
+        .filter(|p| p.generation == generation)
+        .ok_or(NOT_CURRENT)?;
+    if !matches!(p.shared.snapshot().phase, Phase::NeedsCode(_)) {
+        return Err("The sign-in is not waiting for a 2FA code right now.".to_string());
+    }
+    p.action_tx
+        .send(action)
+        .map_err(|_| NOT_CURRENT.to_string())
+}
+
+/// State shown by the sign-in page. Never includes the password.
+pub(crate) fn page_status(generation: u64, shared: &LoginShared) -> Value {
+    let snapshot = shared.snapshot();
+    let base = json!({ "version": snapshot.version, "email": snapshot.email });
+    let extra = match snapshot.phase {
+        Phase::Done(Ok(v)) => json!({ "phase": "done", "first_name": v.get("first_name") }),
+        Phase::Done(Err(e)) => json!({ "phase": "failed", "error": e }),
+        _ if !page_is_current(generation) => json!({ "phase": "failed", "error": NOT_CURRENT }),
+        Phase::AwaitingCredentials { error } => json!({ "phase": "credentials", "error": error }),
+        Phase::SigningIn => json!({ "phase": "signing_in" }),
+        Phase::NeedsCode(req) => json!({
+            "phase": "code",
+            "method": if req.method == TwoFactorMethod::Sms { "sms" } else { "device" },
+            "phones": phones_json(&req),
+        }),
+    };
+    let mut out = base;
+    if let (Some(o), Value::Object(e)) = (out.as_object_mut(), extra) {
+        o.extend(e);
+    }
+    out
 }
