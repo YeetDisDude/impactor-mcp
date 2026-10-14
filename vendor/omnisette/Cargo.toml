@@ -1,5 +1,5 @@
 # Vendored from Impactor v2.6.5 (3rdparty/omnisette) with workspace fields
-# inlined. Only change: the Android client info in remote_anisette_v3.rs.
+# inlined. impactor-mcp changes (marked in remote_anisette_v3.rs): Android client info, provisioning error handling, retries across anisette servers.
 [package]
 name = "omnisette"
 edition = "2024"
@@ -45,6 +45,7 @@ tokio-tungstenite = { version = "0.27.0", optional = true, features = [
 futures-util = { version = "0.3.28", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde"], optional = true }
 anyhow = "1.0"
+tokio = { version = "1.43", default-features = false, features = ["time"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 dlopen2 = "0.4"

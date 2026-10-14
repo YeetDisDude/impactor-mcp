@@ -7,7 +7,7 @@ use base64::Engine;
 use base64::engine::general_purpose;
 use chrono::{DateTime, SubsecRound, Utc};
 use futures_util::{SinkExt, stream::StreamExt};
-use log::debug;
+use log::{debug, warn};
 use plist::{Data, Dictionary};
 use reqwest::{Client, ClientBuilder, RequestBuilder};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -263,7 +263,7 @@ impl AnisetteClient {
                 if message.contains("-45061") {
                     Err(AnisetteError::AnisetteNotProvisioned)
                 } else {
-                    panic!("Unknown error {}", message)
+                    Err(server_error(&self.url, &message))
                 }
             }
             AnisetteHeaders::Headers {
@@ -318,7 +318,9 @@ impl AnisetteClient {
         );
 
         let provision_ws_url =
-            format!("{}/v3/provisioning_session", self.url).replace("https://", "wss://");
+            format!("{}/v3/provisioning_session", self.url)
+                .replace("https://", "wss://")
+                .replace("http://", "ws://");
         let (mut connection, _) = connect_async(&provision_ws_url).await?;
 
         #[derive(Deserialize)]
@@ -334,11 +336,24 @@ impl AnisetteClient {
                 #[allow(dead_code)] // it's not even dead, rust just has problems
                 adi_pb: String,
             },
+            // impactor-mcp: the server's failure results, which used to fail
+            // with "unknown variant".
+            Timeout,
+            InvalidIdentifier,
+            StartProvisioningError {
+                message: String,
+            },
+            EndProvisioningError {
+                message: String,
+            },
         }
 
         loop {
-            let Some(Ok(data)) = connection.next().await else {
-                continue;
+            // impactor-mcp: a closed or failed socket used to spin here forever.
+            let data = match connection.next().await {
+                Some(Ok(data)) => data,
+                Some(Err(e)) => return Err(e.into()),
+                None => break,
             };
             if data.is_text() {
                 let txt = data.to_text().unwrap();
@@ -436,8 +451,18 @@ impl AnisetteClient {
                     ProvisionInput::ProvisioningSuccess { adi_pb } => {
                         debug!("ProvisioningSuccess");
                         state.adi_pb = Some(base64_decode(&adi_pb));
-                        connection.close(None).await?;
+                        let _ = connection.close(None).await;
                         break;
+                    }
+                    ProvisionInput::Timeout => {
+                        return Err(server_error(&self.url, "provisioning timed out"));
+                    }
+                    ProvisionInput::InvalidIdentifier => {
+                        return Err(server_error(&self.url, "invalid device identifier"));
+                    }
+                    ProvisionInput::StartProvisioningError { message }
+                    | ProvisionInput::EndProvisioningError { message } => {
+                        return Err(server_error(&self.url, &message));
                     }
                 }
             } else if data.is_close() {
@@ -445,8 +470,48 @@ impl AnisetteClient {
             }
         }
 
+        if state.adi_pb.is_none() {
+            return Err(server_error(&self.url, "provisioning ended without data"));
+        }
         Ok(())
     }
+}
+
+fn server_error(url: &str, message: &str) -> AnisetteError {
+    AnisetteError::Anyhow(anyhow::anyhow!("anisette server {url}: {message}"))
+}
+
+/// impactor-mcp: servers tried in order when one fails (public servers are
+/// overloaded since Apple's 2026-10-12 change). `IMPACTOR_MCP_ANISETTE_URL`
+/// (one URL or a comma-separated list) replaces the whole list.
+const FALLBACK_URLS: &[&str] = &[
+    "https://ani.sidestore.io",
+    "https://ani.stikstore.app",
+    "https://ani.npeg.us",
+    "https://ani.jkcoxson.com",
+];
+
+/// Public servers often fail a provisioning run and succeed on the next one.
+const PROVISION_ATTEMPTS_PER_SERVER: u32 = 2;
+
+fn server_urls(default_url: &str) -> Vec<String> {
+    if let Ok(list) = std::env::var("IMPACTOR_MCP_ANISETTE_URL") {
+        let urls: Vec<String> = list
+            .split(',')
+            .map(|u| u.trim().trim_end_matches('/').to_string())
+            .filter(|u| !u.is_empty())
+            .collect();
+        if !urls.is_empty() {
+            return urls;
+        }
+    }
+    let mut urls = vec![default_url.trim_end_matches('/').to_string()];
+    for url in FALLBACK_URLS {
+        if !urls.iter().any(|u| u == url) {
+            urls.push(url.to_string());
+        }
+    }
+    urls
 }
 
 pub struct RemoteAnisetteProviderV3 {
@@ -473,45 +538,94 @@ impl RemoteAnisetteProviderV3 {
     }
 }
 
+impl RemoteAnisetteProviderV3 {
+    /// Provisions a new identity and fetches headers, trying each server in
+    /// turn. Provisioning data is not tied to the server that made it.
+    async fn provision_and_fetch(&mut self) -> Result<AnisetteData, AnisetteError> {
+        let config_path = self.configuration_path.join("state.plist");
+        let mut last_error = None;
+        for url in server_urls(&self.client_url) {
+            for attempt in 1..=PROVISION_ATTEMPTS_PER_SERVER {
+                if attempt > 1 {
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                }
+                let client = AnisetteClient::new(url.clone()).await?;
+                // A fresh identity per attempt: a half-finished provisioning
+                // can leave the old one unusable.
+                let mut state = AnisetteState::new();
+                let result = match client.provision(&mut state).await {
+                    Ok(()) => client.get_headers(&state).await,
+                    Err(e) => Err(e),
+                };
+                match result {
+                    Ok(data) => {
+                        plist::to_file_xml(&config_path, &state)?;
+                        self.state = Some(state);
+                        self.client = Some(client);
+                        return Ok(data);
+                    }
+                    Err(e) => {
+                        warn!("Anisette provisioning via {url} (attempt {attempt}) failed: {e}");
+                        last_error = Some(e);
+                    }
+                }
+            }
+        }
+        Err(last_error.unwrap_or(AnisetteError::AnisetteNotProvisioned))
+    }
+
+    /// Headers for the saved identity, from the current server or the others.
+    async fn fetch_headers(&mut self) -> Result<AnisetteData, AnisetteError> {
+        let state = self.state.as_ref().ok_or(AnisetteError::AnisetteNotProvisioned)?;
+        let current = self.client.as_ref().map(|c| c.url.clone());
+        let mut urls = server_urls(&self.client_url);
+        if let Some(current) = current {
+            urls.retain(|u| *u != current);
+            urls.insert(0, current);
+        }
+
+        let mut last_error = None;
+        for url in urls {
+            let client = AnisetteClient::new(url.clone()).await?;
+            match client.get_headers(state).await {
+                Ok(data) => {
+                    self.client = Some(client);
+                    return Ok(data);
+                }
+                Err(AnisetteError::AnisetteNotProvisioned) => {
+                    return Err(AnisetteError::AnisetteNotProvisioned);
+                }
+                Err(e) => {
+                    warn!("Anisette headers via {url} failed: {e}");
+                    last_error = Some(e);
+                }
+            }
+        }
+        Err(last_error.unwrap_or(AnisetteError::AnisetteNotProvisioned))
+    }
+}
+
 #[async_trait]
 impl AnisetteHeadersProvider for RemoteAnisetteProviderV3 {
     async fn get_anisette_headers(
         &mut self,
         _skip_provisioning: bool,
     ) -> Result<HashMap<String, String>, AnisetteError> {
-        if self.client.is_none() {
-            self.client = Some(AnisetteClient::new(self.client_url.clone()).await?);
-        }
-        let client = self.client.as_ref().unwrap();
-
         fs::create_dir_all(&self.configuration_path)?;
 
         let config_path = self.configuration_path.join("state.plist");
         if self.state.is_none() {
-            self.state = Some(if let Ok(text) = plist::from_file(&config_path) {
-                text
-            } else {
-                AnisetteState::new()
-            });
+            self.state = plist::from_file(&config_path).ok();
         }
 
-        let state = self.state.as_mut().unwrap();
-        if !state.is_provisioned() {
-            client.provision(state).await?;
-            plist::to_file_xml(&config_path, state)?;
-        }
-        let data = match client.get_headers(&state).await {
-            Ok(data) => data,
-            Err(err) => {
-                if matches!(err, AnisetteError::AnisetteNotProvisioned) {
-                    state.adi_pb = None;
-                    client.provision(state).await?;
-                    plist::to_file_xml(config_path, state)?;
-                    client.get_headers(&state).await?
-                } else {
-                    panic!()
-                }
+        let provisioned = self.state.as_ref().is_some_and(|s| s.is_provisioned());
+        let data = if provisioned {
+            match self.fetch_headers().await {
+                Err(AnisetteError::AnisetteNotProvisioned) => self.provision_and_fetch().await?,
+                other => other?,
             }
+        } else {
+            self.provision_and_fetch().await?
         };
         Ok(data.get_headers(self.serial.clone()))
     }

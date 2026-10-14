@@ -136,6 +136,10 @@ Example prompts:
   vendored copy of Impactor's `omnisette` crate (`vendor/omnisette`) that presents as an Android
   device instead, the same fix as isideload 0.4.5. Remove `vendor/` and the `[patch]` entry in
   `Cargo.toml` once an Impactor release fixes it.
+- **Anisette servers.** Public anisette servers are overloaded and often fail a provisioning run.
+  The server retries and falls back across several of them. To use your own (e.g. a self-hosted
+  [anisette-v3-server](https://github.com/Dadoum/anisette-v3-server)), set
+  `IMPACTOR_MCP_ANISETTE_URL` to its URL, or a comma-separated list in the order to try.
 - **Certificate resets.** Free accounts can hold only a few development certificates. When a new one
   is needed and the limit is hit, tools fail with a hint instead of revoking anything. Pass
   `allow_certificate_reset: true` only if you accept that existing SideStore/AltStore installs break.
