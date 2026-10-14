@@ -11,6 +11,9 @@
     With options:
         & ([scriptblock]::Create((irm https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/install.ps1))) -AutoRefresh
 
+    Re-running it updates an existing install to the latest release (also while Claude is
+    running) and keeps the auto-refresh setting unless -AutoRefresh / -NoAutoRefresh is given.
+
     1. Downloads the prebuilt binary for this machine from the latest GitHub release.
        If there is none (or -FromSource), builds it with cargo (installing Rust via winget if needed).
        Source builds use the local checkout when run from one.
@@ -21,6 +24,7 @@ param(
     [switch]$NoClaudeCode,   # Skip registering with Claude Code
     [switch]$NoDesktop,      # Skip registering with Claude Desktop
     [switch]$AutoRefresh,    # Let the server auto-refresh saved apps in the background
+    [switch]$NoAutoRefresh,  # Turn auto-refresh off (an update otherwise keeps the current setting)
     [switch]$FromSource,     # Build with cargo even if a prebuilt binary is available
     [switch]$Uninstall       # Remove the binary and both registrations
 )
@@ -65,20 +69,65 @@ function Read-DesktopConfig {
     return (New-Object PSObject)
 }
 
+# Whether the current registration has auto-refresh on (Claude Desktop config or Claude Code).
+function Get-CurrentAutoRefresh {
+    try {
+        $config = Read-DesktopConfig
+        $entry = if ($config.mcpServers) { $config.mcpServers.$ServerName } else { $null }
+        if ($entry) {
+            $value = if ($entry.env) { "$($entry.env.IMPACTOR_MCP_AUTO_REFRESH)" } else { '' }
+            return ($value -eq '1' -or $value -eq 'true')
+        }
+    } catch { }
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        $old = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $out = (claude mcp get $ServerName 2>$null) -join "`n"
+            return ($out -match 'IMPACTOR_MCP_AUTO_REFRESH=(1|true)')
+        } catch { } finally { $ErrorActionPreference = $old }
+    }
+    return $false
+}
+
+# Windows will not overwrite a running .exe, but it will rename one: move the old
+# binary aside so an update works while Claude is running it. Leftovers are
+# deleted on the next run, once nothing uses them.
+function Install-Binary($Source) {
+    Get-ChildItem -Path $InstallDir -Filter 'impactor-mcp.exe.old-*' -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+    $old = $null
+    if (Test-Path $BinPath) {
+        $old = "$BinPath.old-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+        Move-Item -Force $BinPath $old
+    }
+    try {
+        Copy-Item -Force $Source $BinPath
+    } catch {
+        if ($old) { Move-Item -Force $old $BinPath -ErrorAction SilentlyContinue }
+        throw "Could not write $BinPath ($($_.Exception.Message)). Quit Claude Desktop and Claude Code, then run the installer again."
+    }
+    if ($old) { Remove-Item -Force $old -ErrorAction SilentlyContinue }
+}
+
 function Install-Prebuilt {
     $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'aarch64' } else { 'x86_64' }
     $url = "https://github.com/$Repo/releases/latest/download/impactor-mcp-windows-$arch.exe"
     Step "Downloading prebuilt binary ($url)"
     $tmp = Join-Path $env:TEMP "impactor-mcp-$([guid]::NewGuid()).exe"
     try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $tmp
-        Copy-Item -Force $tmp $BinPath
+        try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $tmp
+        } catch {
+            Warn "No prebuilt binary available ($($_.Exception.Message)); building from source instead."
+            return $false
+        }
+        # Outside the download's catch: failing to replace the binary must not
+        # turn into a source build.
+        Install-Binary $tmp
         return $true
-    } catch {
-        Warn "No prebuilt binary available ($($_.Exception.Message)); building from source instead."
-        return $false
     } finally {
         Remove-Item -Force $tmp -ErrorAction SilentlyContinue
     }
@@ -101,13 +150,13 @@ function Install-FromSource {
         Push-Location $LocalRoot
         try { $code = Invoke-Native { cargo build --release --locked } } finally { Pop-Location }
         if ($code -ne 0) { throw $hint }
-        Copy-Item -Force (Join-Path $LocalRoot 'target\release\impactor-mcp.exe') $BinPath
+        Install-Binary (Join-Path $LocalRoot 'target\release\impactor-mcp.exe')
     } else {
         $root = Join-Path $env:TEMP "impactor-mcp-build-$([guid]::NewGuid())"
         try {
             $code = Invoke-Native { cargo install --locked --git "https://github.com/$Repo" impactor-mcp --root $root }
             if ($code -ne 0) { throw $hint }
-            Copy-Item -Force (Join-Path $root 'bin\impactor-mcp.exe') $BinPath
+            Install-Binary (Join-Path $root 'bin\impactor-mcp.exe')
         } finally {
             Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
         }
@@ -138,18 +187,26 @@ function Remove-Legacy {
 if ($Uninstall) {
     Remove-Registration $ServerName
     Remove-Legacy
-    if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir }
+    if (Test-Path $InstallDir) {
+        Remove-Item -Recurse -Force $InstallDir -ErrorAction SilentlyContinue
+        if (Test-Path $InstallDir) { Warn "Some files in $InstallDir are in use; quit Claude and delete the folder." }
+    }
     Step 'Uninstalled. (Impactor accounts in %APPDATA%\PlumeImpactor were left untouched.)'
     return
 }
 
 # --- 1. Get the binary -------------------------------------------------------
+$Updating = Test-Path $BinPath
+if (-not $AutoRefresh -and -not $NoAutoRefresh) {
+    $AutoRefresh = [bool](Get-CurrentAutoRefresh)
+    if ($Updating -and $AutoRefresh) { Step 'Keeping auto-refresh on (pass -NoAutoRefresh to turn it off)' }
+}
 New-Item -ItemType Directory -Force $InstallDir | Out-Null
 # Prefer the prebuilt binary (no compiling); build only when asked or when none exists.
 if ($FromSource -or -not (Install-Prebuilt)) {
     Install-FromSource
 }
-Step "Installed $BinPath"
+if ($Updating) { Step "Updated $BinPath" } else { Step "Installed $BinPath" }
 Remove-Legacy
 
 # --- 2. Register -------------------------------------------------------------
@@ -181,6 +238,7 @@ if (-not $NoDesktop) {
     Write-Utf8NoBom $DesktopConfig ($config | ConvertTo-Json -Depth 32)
     Write-Host '    Restart Claude Desktop to load the server.'
 }
+if ($Updating) { Write-Host '    Running Claude Code sessions keep the old version until restarted.' }
 
 # --- 3. Prerequisite check ---------------------------------------------------
 if (-not (Get-Service -Name 'Apple Mobile Device Service' -ErrorAction SilentlyContinue)) {

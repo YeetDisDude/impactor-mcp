@@ -70,7 +70,15 @@ curl -fsSL https://raw.githubusercontent.com/YeetDisDude/impactor-mcp/main/insta
 | `-NoDesktop` / `--no-desktop` | Don't touch the Claude Desktop config |
 | `-AutoRefresh` / `--auto-refresh` | Refresh saved apps in the background (see below) |
 | `-FromSource` / `--from-source` | Build with cargo instead of downloading a prebuilt binary |
+| `-NoAutoRefresh` / `--no-auto-refresh` | Turn auto-refresh off when updating |
 | `-Uninstall` / `--uninstall` | Remove the binary and both registrations |
+
+### Updating
+
+Run the same install command again. It replaces the binary with the latest release, even while
+Claude is using it, and keeps your auto-refresh setting. Then restart Claude Desktop and any running
+Claude Code sessions so they load the new version. If you installed the `.mcpb` extension, download
+and open the new `impactor-mcp.mcpb` instead. If you used `cargo install`, re-run it with `--force`.
 
 ### Requirements
 
@@ -113,12 +121,21 @@ saving for auto-refresh. Long operations report MCP progress notifications.
 
 Example prompts:
 
-- "Log me into Impactor with my Apple ID" (the agent will ask you for the 2FA code)
+- "Log me into Impactor with my Apple ID" (a sign-in page opens in your browser)
 - "Sign ~/Downloads/SideStore.ipa and install it on my iPhone, and keep it refreshed"
 - "Inject this tweak into the app and export the signed ipa to my desktop"
 
 ## Notes
 
+- **Signing in.** `account_login` opens a sign-in page on `127.0.0.1` in your browser. You type your
+  Apple ID, password and 2FA code there, so the password never goes through the agent or its
+  conversation. The agent waits for the result. Clients that allow it can still pass `email` and
+  `password` directly.
+- **Apple's -80045 block (2026-10-12).** Apple started rejecting the macOS client info that public
+  anisette servers report, so every Impactor login failed with `-80045`. This server builds against a
+  vendored copy of Impactor's `omnisette` crate (`vendor/omnisette`) that presents as an Android
+  device instead, the same fix as isideload 0.4.5. Remove `vendor/` and the `[patch]` entry in
+  `Cargo.toml` once an Impactor release fixes it.
 - **Certificate resets.** Free accounts can hold only a few development certificates. When a new one
   is needed and the limit is hit, tools fail with a hint instead of revoking anything. Pass
   `allow_certificate_reset: true` only if you accept that existing SideStore/AltStore installs break.
@@ -131,7 +148,7 @@ Example prompts:
   may need an app restart to appear there.
 - **Logs** go to stderr (stdout is the protocol channel). Set `RUST_LOG=debug` for detail.
 - **Following newer Impactor releases:** bump the `tag` values in `Cargo.toml` and run
-  `cargo update`.
+  `cargo update`. Re-check whether `vendor/omnisette` is still needed.
 
 ## Releasing
 
