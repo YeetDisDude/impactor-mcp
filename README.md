@@ -7,7 +7,7 @@ An [MCP](https://modelcontextprotocol.io) server that lets any AI agent or MCP c
 2FA), manage developer-portal certificates/devices/app IDs, sign and install `.ipa` files with
 tweaks and customizations, install pairing files, and keep apps refreshed before they expire.
 
-It is a **standalone add-on**. It builds against the official Impactor release (`v2.6.5`, fetched by
+It is a **standalone add-on**. It builds against the official Impactor release (`v2.7.0`, fetched by
 Cargo) and shares Impactor's data directory, so it works next to the stock Impactor app — you never
 need a modified build of the app. Accounts you log into in the app show up here and vice versa.
 
@@ -131,15 +131,9 @@ Example prompts:
   Apple ID, password and 2FA code there, so the password never goes through the agent or its
   conversation. The agent waits for the result. Clients that allow it can still pass `email` and
   `password` directly.
-- **Apple's -80045 block (2026-10-12).** Apple started rejecting the macOS client info that public
-  anisette servers report, so every Impactor login failed with `-80045`. This server builds against a
-  vendored copy of Impactor's `omnisette` crate (`vendor/omnisette`) that presents as an Android
-  device instead, the same fix as isideload 0.4.5. Remove `vendor/` and the `[patch]` entry in
-  `Cargo.toml` once an Impactor release fixes it.
-- **Anisette servers.** Public anisette servers are overloaded and often fail a provisioning run.
-  The server retries and falls back across several of them. To use your own (e.g. a self-hosted
-  [anisette-v3-server](https://github.com/Dadoum/anisette-v3-server)), set
-  `IMPACTOR_MCP_ANISETTE_URL` to its URL, or a comma-separated list in the order to try.
+- **Apple's -80045 block (October 2026).** Apple started rejecting the client info that anisette
+  servers reported, so every Impactor login failed with `-80045`. This is fixed upstream in Impactor
+  `v2.7.0`, which this server builds against; no local workaround is needed.
 - **Certificate resets.** Free accounts can hold only a few development certificates. When a new one
   is needed and the limit is hit, tools fail with a hint instead of revoking anything. Pass
   `allow_certificate_reset: true` only if you accept that existing SideStore/AltStore installs break.
@@ -152,11 +146,11 @@ Example prompts:
   may need an app restart to appear there.
 - **Logs** go to stderr (stdout is the protocol channel). Set `RUST_LOG=debug` for detail.
 - **Following newer Impactor releases:** bump the `tag` values in `Cargo.toml` and run
-  `cargo update`. Re-check whether `vendor/omnisette` is still needed.
+  `cargo update`.
 
 ## Releasing
 
-Pushing a tag such as `v2.6.5` runs `.github/workflows/release.yml`. It builds Windows, macOS and
+Pushing a tag such as `v2.7.0` runs `.github/workflows/release.yml`. It builds Windows, macOS and
 Linux binaries (x86_64 and arm64) and attaches them to the GitHub release that the installers
 download from.
 

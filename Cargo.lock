@@ -182,7 +182,7 @@ dependencies = [
 [[package]]
 name = "apple-codesign"
 version = "0.29.0"
-source = "git+https://github.com/claration/Impactor?tag=v2.6.5#6244bc3fb2a719ba528da10fa6f736440195356c"
+source = "git+https://github.com/claration/Impactor?tag=v2.7.0#56358d37358009067bdfb2649c6af53460845b90"
 dependencies = [
  "anyhow",
  "apple-bundles",
@@ -1226,8 +1226,8 @@ checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
 
 [[package]]
 name = "decompress"
-version = "2.6.5"
-source = "git+https://github.com/claration/Impactor?tag=v2.6.5#6244bc3fb2a719ba528da10fa6f736440195356c"
+version = "2.7.0"
+source = "git+https://github.com/claration/Impactor?tag=v2.7.0#56358d37358009067bdfb2649c6af53460845b90"
 dependencies = [
  "ar",
  "bzip2 0.6.1",
@@ -2338,7 +2338,7 @@ dependencies = [
 
 [[package]]
 name = "impactor-mcp"
-version = "2.6.5"
+version = "2.7.0"
 dependencies = [
  "chrono",
  "env_logger",
@@ -2980,7 +2980,8 @@ dependencies = [
 
 [[package]]
 name = "omnisette"
-version = "2.6.5"
+version = "2.7.0"
+source = "git+https://github.com/claration/Impactor?tag=v2.7.0#56358d37358009067bdfb2649c6af53460845b90"
 dependencies = [
  "android-loader",
  "anyhow",
@@ -3002,7 +3003,6 @@ dependencies = [
  "serde_json",
  "sha2 0.11.1",
  "thiserror 2.0.21",
- "tokio",
  "tokio-tungstenite",
  "uuid",
 ]
@@ -3347,8 +3347,8 @@ dependencies = [
 
 [[package]]
 name = "plume_core"
-version = "2.6.5"
-source = "git+https://github.com/claration/Impactor?tag=v2.6.5#6244bc3fb2a719ba528da10fa6f736440195356c"
+version = "2.7.0"
+source = "git+https://github.com/claration/Impactor?tag=v2.7.0#56358d37358009067bdfb2649c6af53460845b90"
 dependencies = [
  "aes 0.9.3",
  "aes-gcm",
@@ -3384,13 +3384,13 @@ dependencies = [
 
 [[package]]
 name = "plume_gestalt"
-version = "2.6.5"
-source = "git+https://github.com/claration/Impactor?tag=v2.6.5#6244bc3fb2a719ba528da10fa6f736440195356c"
+version = "2.7.0"
+source = "git+https://github.com/claration/Impactor?tag=v2.7.0#56358d37358009067bdfb2649c6af53460845b90"
 
 [[package]]
 name = "plume_store"
-version = "2.6.5"
-source = "git+https://github.com/claration/Impactor?tag=v2.6.5#6244bc3fb2a719ba528da10fa6f736440195356c"
+version = "2.7.0"
+source = "git+https://github.com/claration/Impactor?tag=v2.7.0#56358d37358009067bdfb2649c6af53460845b90"
 dependencies = [
  "chrono",
  "plume_core",
@@ -3401,8 +3401,8 @@ dependencies = [
 
 [[package]]
 name = "plume_utils"
-version = "2.6.5"
-source = "git+https://github.com/claration/Impactor?tag=v2.6.5#6244bc3fb2a719ba528da10fa6f736440195356c"
+version = "2.7.0"
+source = "git+https://github.com/claration/Impactor?tag=v2.7.0#56358d37358009067bdfb2649c6af53460845b90"
 dependencies = [
  "decompress",
  "flate2",
