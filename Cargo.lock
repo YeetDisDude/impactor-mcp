@@ -2981,7 +2981,6 @@ dependencies = [
 [[package]]
 name = "omnisette"
 version = "2.6.5"
-source = "git+https://github.com/claration/Impactor?tag=v2.6.5#6244bc3fb2a719ba528da10fa6f736440195356c"
 dependencies = [
  "android-loader",
  "anyhow",

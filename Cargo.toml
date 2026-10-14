@@ -39,6 +39,12 @@ plume_gestalt = { git = "https://github.com/claration/Impactor", tag = "v2.6.5" 
 [patch.crates-io]
 apple-codesign = { git = "https://github.com/claration/Impactor", tag = "v2.6.5" }
 
+# Impactor's anisette crate with an Android client info, which Apple still
+# accepts after the 2026-10-12 -80045 change. Drop this (and vendor/) once an
+# Impactor release fixes it upstream.
+[patch."https://github.com/claration/Impactor"]
+omnisette = { path = "vendor/omnisette" }
+
 [profile.release]
 codegen-units = 1
 lto = true
