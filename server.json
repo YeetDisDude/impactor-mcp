@@ -7,12 +7,12 @@
     "url": "https://github.com/YeetDisDude/impactor-mcp",
     "source": "github"
   },
-  "version": "2.6.5",
+  "version": "2.7.0",
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/YeetDisDude/impactor-mcp/releases/download/v2.6.5-4/impactor-mcp.mcpb",
-      "fileSha256": "77a5f17b8e31d664b5552eade72264eaef79f022be209ad177e52555ec7f43a1",
+      "identifier": "https://github.com/YeetDisDude/impactor-mcp/releases/download/v2.7.0/impactor-mcp.mcpb",
+      "fileSha256": "9b6aacc00bf5016c65cdb44c6551cad2282a3514b9405e751c939aca85719f7b",
       "transport": { "type": "stdio" }
     }
   ]
