@@ -1,3 +1,5 @@
+<img src="docs/assets/logo-wordmark.svg" alt="impactor-mcp" width="300">
+
 # Impactor MCP server
 
 ![impactor-mcp: sign and install iOS apps from your AI agent](docs/assets/intro.png)
