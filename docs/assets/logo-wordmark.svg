@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" width="600" height="128">
+  <title>impactor-mcp</title>
+  <style>.w{fill:#1f2328}.m{fill:#59636e}@media (prefers-color-scheme:dark){.w{fill:#e6edf3}.m{fill:#8d96a0}}</style>
+  <rect width="64" height="64" rx="14" fill="#161b22"/>
+  <rect x=".5" y=".5" width="63" height="63" rx="13.5" fill="none" stroke="#30363d"/>
+  <rect x="25" y="11" width="25" height="42" rx="5.5" fill="none" stroke="#e6edf3" stroke-width="4"/>
+  <path d="M34 46.5h7" stroke="#e6edf3" stroke-width="3" stroke-linecap="round"/>
+  <path d="M8 32h22" stroke="#161b22" stroke-width="11"/>
+  <path d="M9 32h24M27 25.5l6.5 6.5-6.5 6.5" fill="none" stroke="#4493f8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="42" font-family="'Segoe UI', -apple-system, 'SF Pro Text', system-ui, sans-serif" font-size="30" font-weight="600" class="w">impactor<tspan font-family="'Cascadia Mono', 'SF Mono', Consolas, monospace" font-size="25" font-weight="400" class="m">-mcp</tspan></text>
+</svg>

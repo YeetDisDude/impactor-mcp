@@ -67,7 +67,7 @@ jobs:
       - name: Build MCP bundle
         run: |
           mkdir -p bundle/server
-          cp mcpb/manifest.json bundle/
+          cp mcpb/manifest.json mcpb/icon.png bundle/
           cp mcpb/impactor-mcp bundle/server/
           cp dist/impactor-mcp-windows-x86_64.exe bundle/server/impactor-mcp.exe
           cp dist/impactor-mcp-macos-* dist/impactor-mcp-linux-* bundle/server/
